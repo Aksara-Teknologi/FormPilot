@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const input = body as Record<string, unknown>;
     if (typeof input.scenarioId !== "string" || typeof input.targetUrl !== "string") throw new Error("Scenario dan target wajib diisi");
     const target = validateTargetUrl(input.targetUrl);
-    const scenario = await getWorkflowScenario(currentUser(request), input.scenarioId);
+    const scenario = await getWorkflowScenario(await currentUser(request), input.scenarioId);
     if (!scenario || scenario.siteOrigin !== target.origin) throw new Error("Scenario tidak tersedia untuk situs ini");
     if (!input.source || typeof input.source !== "object" || Array.isArray(input.source)) throw new Error("Data baris tidak valid");
     const source = input.source as Record<string, unknown>;

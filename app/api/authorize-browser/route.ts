@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const submit = record.submit === true;
     if (!plan || typeof plan !== "object" || typeof record.approvalToken !== "string") throw new Error("Plan atau persetujuan tidak tersedia");
     if (submit && record.confirmSubmit !== true) throw new Error("Konfirmasi submit wajib diberikan");
-    if (!await verifyApprovalToken(record.approvalToken, currentUser(request), plan)) {
+    if (!await verifyApprovalToken(record.approvalToken, await currentUser(request), plan)) {
       return Response.json({ error: "Token persetujuan tidak valid atau kedaluwarsa" }, { status: 403 });
     }
     const mappings = plan.mappings

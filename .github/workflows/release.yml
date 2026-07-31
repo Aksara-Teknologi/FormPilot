@@ -37,8 +37,8 @@ jobs:
       CLOUDFLARE_D1_DATABASE_NAME: ${{ vars.CLOUDFLARE_D1_DATABASE_NAME }}
       CLOUDFLARE_WORKER_NAME: ${{ vars.CLOUDFLARE_WORKER_NAME }}
       FORMPILOT_HOSTNAME: ${{ vars.FORMPILOT_HOSTNAME }}
-      TEAM_DOMAIN: ${{ vars.TEAM_DOMAIN }}
-      POLICY_AUD: ${{ vars.POLICY_AUD }}
+      GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+      GOOGLE_ALLOWED_DOMAINS: ${{ vars.GOOGLE_ALLOWED_DOMAINS }}
       OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
       ALLOWED_TARGET_HOSTS: ${{ vars.ALLOWED_TARGET_HOSTS }}
@@ -77,9 +77,11 @@ jobs:
           command: deploy --config dist/server/wrangler.production.json --keep-vars --strict
           secrets: |
             APP_SIGNING_SECRET
+            GOOGLE_CLIENT_SECRET
             OPENAI_API_KEY
         env:
           APP_SIGNING_SECRET: ${{ secrets.APP_SIGNING_SECRET }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Package release artifacts

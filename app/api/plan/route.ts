@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     if (!record.source || typeof record.source !== "object" || Array.isArray(record.source)) throw new Error("Data sumber harus berupa objek JSON");
     if (JSON.stringify(record.source).length > 100_000) throw new Error("Data sumber maksimal 100 KB");
     const fallbackMode = record.fallbackMode === "random_safe" || record.fallbackMode === "blank" ? record.fallbackMode : "ask";
-    const user = currentUser(request);
+    const user = await currentUser(request);
     const knowledgeRules = await resolveKnowledgeRules(user, record.targetUrl);
     const plan = await buildPlan(record.targetUrl, record.fields, record.source as Record<string, unknown>, fallbackMode, knowledgeRules);
     return Response.json({ plan, approvalToken: await createApprovalToken(user, plan) });

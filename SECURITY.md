@@ -14,4 +14,4 @@ Aksara Bayu Teknologi akan mengonfirmasi laporan, melakukan triase, dan mengoord
 
 - Jangan pernah menyertakan API key, cookie, password, OTP, CAPTCHA, PIN, atau token dalam issue dan log.
 - Browser Bridge hanya boleh dipasang dari paket release resmi atau saluran enterprise yang dikelola.
-- Deployment produksi wajib dilindungi Cloudflare Access dan menggunakan allowlist hostname target.
+- Deployment produksi wajib mengaktifkan Google OAuth langsung, menyimpan client secret hanya sebagai Worker secret, dan memakai HTTPS. Allowlist hostname target serta domain email login tersedia sebagai pengamanan opsional.

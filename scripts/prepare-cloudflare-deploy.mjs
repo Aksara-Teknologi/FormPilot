@@ -19,6 +19,7 @@ const config = JSON.parse(await readFile(sourcePath, "utf8"));
 const databaseId = required("CLOUDFLARE_D1_DATABASE_ID");
 const hostname = optional("FORMPILOT_HOSTNAME", "form-pilot.aksarateknologi.com");
 const allowedTargetHosts = optional("ALLOWED_TARGET_HOSTS");
+const allowedGoogleDomains = optional("GOOGLE_ALLOWED_DOMAINS");
 
 config.name = optional("CLOUDFLARE_WORKER_NAME", "formpilot");
 config.compatibility_date = optional("CLOUDFLARE_COMPATIBILITY_DATE", "2026-07-31");
@@ -32,8 +33,8 @@ config.observability = {
   traces: { enabled: true, head_sampling_rate: 0.05 },
 };
 config.vars = {
-  TEAM_DOMAIN: required("TEAM_DOMAIN"),
-  POLICY_AUD: required("POLICY_AUD"),
+  GOOGLE_CLIENT_ID: required("GOOGLE_CLIENT_ID"),
+  ...(allowedGoogleDomains ? { GOOGLE_ALLOWED_DOMAINS: allowedGoogleDomains } : {}),
   OPENAI_BASE_URL: optional("OPENAI_BASE_URL", "https://api.openai.com/v1"),
   OPENAI_MODEL: required("OPENAI_MODEL"),
   ...(allowedTargetHosts ? { ALLOWED_TARGET_HOSTS: allowedTargetHosts } : {}),

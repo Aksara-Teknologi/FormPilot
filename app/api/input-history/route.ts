@@ -10,7 +10,7 @@ function shortText(value: unknown, name: string, max: number): string {
 
 export async function GET(request: Request) {
   try {
-    return Response.json({ history: await listInputHistory(currentUser(request)) });
+    return Response.json({ history: await listInputHistory(await currentUser(request)) });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Riwayat gagal dibaca" }, { status: 500 });
   }
@@ -28,7 +28,8 @@ export async function POST(request: Request) {
     if (!Number.isInteger(rowNumber) || rowNumber < 2 || rowNumber > 1_000_001) throw new Error("Nomor baris tidak valid");
     if (input.mode !== "draft" && input.mode !== "submit") throw new Error("Mode riwayat tidak valid");
     const target = validateTargetUrl(shortText(input.targetUrl, "URL target", 2_000));
-    await recordInputSuccess(currentUser(request), {
+    const user = await currentUser(request);
+    await recordInputSuccess(user, {
       rowHash,
       fileName: shortText(input.fileName, "Nama file", 255),
       sheetName: shortText(input.sheetName, "Nama sheet", 255),
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
       targetOrigin: target.origin,
       mode: input.mode,
     });
-    return Response.json({ ok: true, history: await listInputHistory(currentUser(request)) });
+    return Response.json({ ok: true, history: await listInputHistory(user) });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Riwayat gagal disimpan" }, { status: 400 });
   }

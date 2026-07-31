@@ -16,7 +16,7 @@ function text(value: unknown, name: string, max: number, required = true): strin
 
 export async function GET(request: Request) {
   try {
-    return Response.json({ packs: await listKnowledgePacks(currentUser(request)) });
+    return Response.json({ packs: await listKnowledgePacks(await currentUser(request)) });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Knowledge Pack gagal dibaca" }, { status: 500 });
   }
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object") throw new Error("Payload tidak valid");
     const input = body as Record<string, unknown>;
     const action = input.action;
-    const ownerId = currentUser(request);
+    const ownerId = await currentUser(request);
     if (action === "create_pack") {
       const rawOrigin = text(input.siteOrigin ?? "", "Origin situs", 300, false);
       let siteOrigin: string | null = null;

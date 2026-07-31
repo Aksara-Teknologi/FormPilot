@@ -7,7 +7,7 @@ Produk oleh [Aksara Bayu Teknologi](https://aksarateknologi.com). Domain produks
 ## Desain keamanan
 
 - File `.xlsx` dibaca langsung di browser pengguna. File tidak diunggah atau disimpan oleh Worker; hanya baris yang dipilih masuk ke plan sementara.
-- Google SSO ditangani Cloudflare Access. Worker tetap memvalidasi signature, issuer, dan audience JWT Access.
+- Google SSO memakai OAuth 2.0/OIDC langsung dengan `state`, nonce, dan PKCE. Worker memvalidasi ID token Google lalu membuat cookie sesi HttpOnly; token Google tidak disimpan.
 - API key model, token MCP, dan signing secret hanya berada pada Worker secrets. UI hanya melihat status siap/tidak siap.
 - Target URL wajib HTTPS. `ALLOWED_TARGET_HOSTS` bersifat opsional untuk instalasi yang ingin membatasi otomatisasi ke daftar domain tertentu.
 - Password, OTP, CAPTCHA, PIN, token, dan secret tidak dikirim ke AI atau MCP autofill.
@@ -65,12 +65,13 @@ Extension memakai izin `activeTab`, bukan akses permanen ke semua situs. Penggun
 
 ### 1. Google SSO
 
-1. Tambahkan Google atau Google Workspace di **Cloudflare Zero Trust → Integrations → Identity providers**.
-2. Buat **Access → Applications → Self-hosted application** untuk hostname aplikasi.
-3. Buat policy `Allow` hanya untuk email, domain, atau grup yang diperlukan.
-4. Salin team domain ke `TEAM_DOMAIN` dan Application Audience tag ke `POLICY_AUD`.
-5. Nonaktifkan route publik lain yang tidak dilindungi Access, misalnya route `workers.dev` bila memakai custom domain.
-6. Tambahkan `form-pilot.aksarateknologi.com` sebagai hostname aplikasi Access dan custom domain deployment.
+1. Di Google Cloud, konfigurasikan OAuth consent screen dan buat OAuth Client bertipe **Web application**.
+2. Tambahkan origin `https://form-pilot.aksarateknologi.com`.
+3. Tambahkan redirect URI persis `https://form-pilot.aksarateknologi.com/api/auth/google/callback`.
+4. Isi `GOOGLE_CLIENT_ID`; simpan `GOOGLE_CLIENT_SECRET` dan `APP_SIGNING_SECRET` sebagai Worker secrets.
+5. Opsional: isi `GOOGLE_ALLOWED_DOMAINS` dengan domain email yang diizinkan, dipisahkan koma.
+
+FormPilot hanya meminta scope `openid email profile`. Tidak ada batas 50 pengguna dari Cloudflare Access karena Access tidak dipakai untuk login aplikasi.
 
 ### 2. Model OpenAI-compatible
 

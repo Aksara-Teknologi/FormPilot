@@ -1,4 +1,5 @@
 import { readEnv } from "./runtime-env";
+import { readSessionCookie } from "./auth";
 
 const encoder = new TextEncoder();
 
@@ -104,10 +105,12 @@ export function validateTargetUrl(value: string): URL {
   return url;
 }
 
-export function currentUser(request: Request): string {
-  return request.headers.get("cf-access-authenticated-user-email")
-    ?? request.headers.get("oai-authenticated-user-email")
-    ?? (new URL(request.url).hostname === "localhost" ? "demo@localhost" : "unknown");
+export async function currentUser(request: Request): Promise<string> {
+  const session = await readSessionCookie(request.headers.get("cookie"));
+  if (session) return session.email;
+  const hostname = new URL(request.url).hostname;
+  if (hostname === "localhost" || hostname === "127.0.0.1") return "demo@localhost";
+  throw new Error("Login Google diperlukan");
 }
 
 export function requireJsonMutation(request: Request, maxBytes = 1_000_000): void {
