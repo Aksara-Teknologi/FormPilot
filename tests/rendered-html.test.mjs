@@ -37,6 +37,16 @@ test("uses direct Google OIDC with bounded scopes and protected session cookies"
   assert.doesNotMatch(releaseConfig, /TEAM_DOMAIN|POLICY_AUD/);
 });
 
+test("gives wrangler-action a default production config for secret upload", async () => {
+  const [workflow, releaseConfig] = await Promise.all([
+    file(".github/workflows/release.yml"),
+    file("scripts/prepare-cloudflare-deploy.mjs"),
+  ]);
+  assert.match(workflow, /workingDirectory: dist\/server/);
+  assert.match(workflow, /preCommands: wrangler d1 migrations apply DB --remote/);
+  assert.match(releaseConfig, /writeFile\(sourcePath, serializedConfig/);
+});
+
 test("scopes Knowledge Packs to the authenticated user and applies them before AI", async () => {
   const [route, storage, planner, migration] = await Promise.all([
     file("app/api/knowledge-packs/route.ts"),

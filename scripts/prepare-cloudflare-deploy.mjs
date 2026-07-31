@@ -1,9 +1,10 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = process.cwd();
 const sourcePath = resolve(root, "dist/server/wrangler.json");
 const outputPath = resolve(root, "dist/server/wrangler.production.json");
+const deployRedirectPath = resolve(root, ".wrangler/deploy/config.json");
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -49,5 +50,15 @@ config.d1_databases = [{
   migrations_dir: "../../drizzle",
 }];
 
-await writeFile(outputPath, `${JSON.stringify(config, null, 2)}\n`, { mode: 0o600 });
+const serializedConfig = `${JSON.stringify(config, null, 2)}\n`;
+// wrangler-action uploads secrets before running its custom deploy command and
+// does not forward `--config` to `wrangler secret bulk`. Keep the default file
+// in the action working directory identical to the production configuration.
+await Promise.all([
+  writeFile(outputPath, serializedConfig, { mode: 0o600 }),
+  writeFile(sourcePath, serializedConfig, { mode: 0o600 }),
+]);
+// Vinext's generated redirect is rooted at the repository, while the action
+// must run beside wrangler.json so its automatic secret upload sees the Worker.
+await rm(deployRedirectPath, { force: true });
 console.log(`Production deployment config generated for ${hostname}.`);
