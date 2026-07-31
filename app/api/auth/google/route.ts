@@ -12,29 +12,53 @@ async function challenge(verifier: string): Promise<string> {
 }
 
 export async function GET(request: Request) {
-  const clientId = readEnv("GOOGLE_CLIENT_ID");
-  if (!clientId || !readEnv("GOOGLE_CLIENT_SECRET") || !readEnv("APP_SIGNING_SECRET")) {
-    return new Response("Google OAuth belum dikonfigurasi.", { status: 503 });
+  const traceId = crypto.randomUUID();
+  try {
+    const clientId = readEnv("GOOGLE_CLIENT_ID");
+    if (!clientId || !readEnv("GOOGLE_CLIENT_SECRET") || !readEnv("APP_SIGNING_SECRET")) {
+      return new Response(`Google OAuth belum dikonfigurasi. trace=${traceId}`, {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store",
+          "x-trace-id": traceId,
+        },
+      });
+    }
+    const requestUrl = new URL(request.url);
+    const state = randomValue();
+    const nonce = randomValue();
+    const verifier = randomValue();
+    const redirectUri = new URL("/api/auth/google/callback", requestUrl.origin).href;
+    const flow = await createOAuthFlow({ state, nonce, verifier, returnTo: safeReturnTo(requestUrl.searchParams.get("return_to")) });
+    const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    authorizationUrl.search = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+      nonce,
+      code_challenge: await challenge(verifier),
+      code_challenge_method: "S256",
+      prompt: "select_account",
+    }).toString();
+    const response = Response.redirect(authorizationUrl, 302);
+    response.headers.append("Set-Cookie", serializeCookie(OAUTH_FLOW_COOKIE, flow, request, 600, "/api/auth/google"));
+    response.headers.set("x-trace-id", traceId);
+    return response;
+  } catch (error) {
+    console.error(JSON.stringify({
+      message: "Google login initiation failed",
+      traceId,
+      error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
+    }));
+    const message = error instanceof Error ? error.message : "Google OAuth gagal dimulai";
+    return new Response(`${message} trace=${traceId}`, {
+      status: 500,
+      headers: {
+        "Cache-Control": "no-store",
+        "x-trace-id": traceId,
+      },
+    });
   }
-  const requestUrl = new URL(request.url);
-  const state = randomValue();
-  const nonce = randomValue();
-  const verifier = randomValue();
-  const redirectUri = new URL("/api/auth/google/callback", requestUrl.origin).href;
-  const flow = await createOAuthFlow({ state, nonce, verifier, returnTo: safeReturnTo(requestUrl.searchParams.get("return_to")) });
-  const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  authorizationUrl.search = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: "openid email profile",
-    state,
-    nonce,
-    code_challenge: await challenge(verifier),
-    code_challenge_method: "S256",
-    prompt: "select_account",
-  }).toString();
-  const response = Response.redirect(authorizationUrl, 302);
-  response.headers.append("Set-Cookie", serializeCookie(OAUTH_FLOW_COOKIE, flow, request, 600, "/api/auth/google"));
-  return response;
 }
