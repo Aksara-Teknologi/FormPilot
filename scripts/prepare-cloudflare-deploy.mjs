@@ -18,6 +18,7 @@ function optional(name, fallback = "") {
 const config = JSON.parse(await readFile(sourcePath, "utf8"));
 const databaseId = required("CLOUDFLARE_D1_DATABASE_ID");
 const hostname = optional("FORMPILOT_HOSTNAME", "form-pilot.aksarateknologi.com");
+const allowedTargetHosts = optional("ALLOWED_TARGET_HOSTS");
 
 config.name = optional("CLOUDFLARE_WORKER_NAME", "formpilot");
 config.compatibility_date = optional("CLOUDFLARE_COMPATIBILITY_DATE", "2026-07-31");
@@ -35,7 +36,7 @@ config.vars = {
   POLICY_AUD: required("POLICY_AUD"),
   OPENAI_BASE_URL: optional("OPENAI_BASE_URL", "https://api.openai.com/v1"),
   OPENAI_MODEL: required("OPENAI_MODEL"),
-  ALLOWED_TARGET_HOSTS: required("ALLOWED_TARGET_HOSTS"),
+  ...(allowedTargetHosts ? { ALLOWED_TARGET_HOSTS: allowedTargetHosts } : {}),
   MCP_SERVER_URL: optional("MCP_SERVER_URL"),
   MCP_INSPECT_TOOL: optional("MCP_INSPECT_TOOL", "inspect_form"),
   MCP_FILL_TOOL: optional("MCP_FILL_TOOL", "fill_form"),

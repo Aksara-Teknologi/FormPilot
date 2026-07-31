@@ -9,7 +9,7 @@ Produk oleh [Aksara Bayu Teknologi](https://aksarateknologi.com). Domain produks
 - File `.xlsx` dibaca langsung di browser pengguna. File tidak diunggah atau disimpan oleh Worker; hanya baris yang dipilih masuk ke plan sementara.
 - Google SSO ditangani Cloudflare Access. Worker tetap memvalidasi signature, issuer, dan audience JWT Access.
 - API key model, token MCP, dan signing secret hanya berada pada Worker secrets. UI hanya melihat status siap/tidak siap.
-- Target URL wajib HTTPS dan dapat dibatasi dengan `ALLOWED_TARGET_HOSTS` untuk mencegah SSRF dan akses lintas-domain yang tidak disengaja.
+- Target URL wajib HTTPS. `ALLOWED_TARGET_HOSTS` bersifat opsional untuk instalasi yang ingin membatasi otomatisasi ke daftar domain tertentu.
 - Password, OTP, CAPTCHA, PIN, token, dan secret tidak dikirim ke AI atau MCP autofill.
 - Plan berlaku 10 menit dan ditandatangani HMAC. Perubahan terhadap plan membuat token persetujuan tidak valid.
 - Isi draft dan submit adalah aksi berbeda. Submit membutuhkan konfirmasi eksplisit kedua.
