@@ -22,7 +22,13 @@ export async function GET(request: Request) {
     if (!tokenResponse.ok || typeof tokens.id_token !== "string") throw new Error("Google menolak pertukaran kode login");
     const user = await verifyGoogleIdToken(tokens.id_token, flow.nonce);
     const session = await createSession(user);
-    const response = Response.redirect(new URL(flow.returnTo, requestUrl.origin), 302);
+    const response = new Response(null, {
+      status: 302,
+      headers: {
+        Location: new URL(flow.returnTo, requestUrl.origin).toString(),
+        "Cache-Control": "no-store",
+      },
+    });
     response.headers.append("Set-Cookie", serializeCookie(SESSION_COOKIE, session, request, 7 * 24 * 60 * 60));
     response.headers.append("Set-Cookie", serializeCookie(OAUTH_FLOW_COOKIE, "", request, 0, "/api/auth/google"));
     return response;

@@ -42,10 +42,15 @@ export async function GET(request: Request) {
       code_challenge_method: "S256",
       prompt: "select_account",
     }).toString();
-    const response = Response.redirect(authorizationUrl, 302);
-    response.headers.append("Set-Cookie", serializeCookie(OAUTH_FLOW_COOKIE, flow, request, 600, "/api/auth/google"));
-    response.headers.set("x-trace-id", traceId);
-    return response;
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: authorizationUrl.toString(),
+        "Set-Cookie": serializeCookie(OAUTH_FLOW_COOKIE, flow, request, 600, "/api/auth/google"),
+        "Cache-Control": "no-store",
+        "x-trace-id": traceId,
+      },
+    });
   } catch (error) {
     console.error(JSON.stringify({
       message: "Google login initiation failed",
