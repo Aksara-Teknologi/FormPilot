@@ -34,7 +34,7 @@ config.observability = {
 };
 config.vars = {
   GOOGLE_CLIENT_ID: required("GOOGLE_CLIENT_ID"),
-  ...(allowedGoogleDomains ? { GOOGLE_ALLOWED_DOMAINS: allowedGoogleDomains } : {}),
+  GOOGLE_ALLOWED_DOMAINS: allowedGoogleDomains,
   OPENAI_BASE_URL: optional("OPENAI_BASE_URL", "https://api.openai.com/v1"),
   OPENAI_MODEL: required("OPENAI_MODEL"),
   ...(allowedTargetHosts ? { ALLOWED_TARGET_HOSTS: allowedTargetHosts } : {}),
