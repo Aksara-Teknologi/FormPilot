@@ -32,6 +32,22 @@ function parseSteps(value: string): WorkflowStep[] {
   catch { return []; }
 }
 
+function extractJsonObject(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) return trimmed;
+  const lines = trimmed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (line.startsWith("data:")) {
+      const payload = line.slice(5).trim();
+      if (payload.startsWith("{") && payload.endsWith("}")) return payload;
+    }
+  }
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) return trimmed.slice(firstBrace, lastBrace + 1);
+  return trimmed;
+}
+
 export function validateWorkflowSteps(value: unknown): WorkflowStep[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 30) throw new Error("Scenario harus memiliki 1–30 langkah");
   return value.map((item, index) => {
@@ -47,7 +63,13 @@ export function validateWorkflowSteps(value: unknown): WorkflowStep[] {
     if (action === "find_row") return { action, sourceKey: required("sourceKey"), buttonText: required("buttonText"), description };
     if (action === "click") {
       const text = required("text");
-      if (/submit|simpan|kirim|hapus|delete|bayar|payment/i.test(text)) throw new Error(`Langkah ${index + 1}: tombol final harus dijalankan manual`);
+      if (/submit|simpan|kirim|hapus|delete|bayar|payment/i.test(text)) {
+        return {
+          action: "pause",
+          message: `Berhenti sebelum tombol final "${text}". Jalankan manual setelah ditinjau.`,
+          description: description || `Berhenti sebelum tombol final ${text}`,
+        };
+      }
       return { action, text, description };
     }
     if (action === "wait_for") return { action, text: required("text"), description };
@@ -98,16 +120,17 @@ export async function compileWorkflow(prompt: string, siteOrigin: string): Promi
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30_000);
   try {
     const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({
-      model, temperature: 0, max_tokens: 1200, response_format: { type: "json_object" }, messages: [
+      model, temperature: 0, max_tokens: 1200, stream: false, response_format: { type: "json_object" }, messages: [
         { role: "system", content: `Create a deterministic browser workflow from the user's Indonesian instruction. Origin: ${siteOrigin}. Return JSON {name,description,steps}. Allowed steps only: find_row {sourceKey,buttonText,description}; click {text,description}; wait_for {text,description}; fill {fieldLabel,sourceKey,description}; pause {message,description}. Use visible labels/text, never CSS selectors. Never handle password, OTP, CAPTCHA, PIN, token, payment, delete, submit, save, or send. End with pause before any final action. Values use Excel sourceKey names and are never provided.` },
         { role: "user", content: prompt },
       ],
     }) });
     if (!response.ok) throw new Error(`Model gagal (${response.status})`);
-    const body: unknown = await response.json();
+    const rawBody = await response.text();
+    const body: unknown = rawBody ? JSON.parse(extractJsonObject(rawBody)) : null;
     const content = (body as { choices?: Array<{ message?: { content?: string } }> }).choices?.[0]?.message?.content;
     if (!content) throw new Error("Model tidak mengembalikan scenario");
-    const parsed: unknown = JSON.parse(content); if (!parsed || typeof parsed !== "object") throw new Error("Format scenario tidak valid");
+    const parsed: unknown = JSON.parse(extractJsonObject(content)); if (!parsed || typeof parsed !== "object") throw new Error("Format scenario tidak valid");
     const result = parsed as Record<string, unknown>;
     const name = typeof result.name === "string" ? result.name.trim().slice(0, 80) : "Scenario baru";
     const description = typeof result.description === "string" ? result.description.trim().slice(0, 400) : "";

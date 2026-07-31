@@ -96,7 +96,7 @@ test("compiles one-time prompts into bounded reusable browser workflows", async 
   ]);
   assert.match(workflows, /value\.length > 30/);
   assert.match(workflows, /Never handle password, OTP, CAPTCHA/);
-  assert.match(workflows, /tombol final harus dijalankan manual/);
+  assert.match(workflows, /Berhenti sebelum tombol final/);
   assert.match(authorization, /referencedKeys/);
   assert.match(bridge, /Origin tab tidak sama/);
   assert.match(bridge, /Tombol final ditolak/);

@@ -9,7 +9,7 @@ const actionNames = { find_row: "Cari baris", click: "Klik", wait_for: "Tunggu",
 
 export default function WorkflowManager({ email }: { email: string }) {
   const [scenarios, setScenarios] = useState<WorkflowScenario[]>([]);
-  const [prompt, setPrompt] = useState("Cari baris tabel berdasarkan kolom NIK, lalu klik tombol Lengkapi Data. Tunggu modal terbuka. Isi Nama Lengkap dari kolom nama, klik Selanjutnya, isi Alamat dari kolom alamat, lalu berhenti sebelum tombol Simpan.");
+  const [prompt, setPrompt] = useState("Cari baris tabel berdasarkan kolom NIK, lalu klik tombol Lengkapi Data. Tunggu modal terbuka. Isi Nama Lengkap dari kolom nama, klik Selanjutnya, isi Alamat dari kolom alamat, lalu berhenti sebelum tombol Simpan. Jika model menyebut tombol final, ubah menjadi pause.");
   const [siteOrigin, setSiteOrigin] = useState("https://portal.example.com");
   const [busy, setBusy] = useState(true); const [error, setError] = useState<string | null>(null);
   useEffect(() => { let active = true; fetch("/api/workflows", { cache: "no-store" }).then(async (response) => ({ response, data: await response.json() as ApiResult })).then(({ response, data }) => { if (!response.ok || !data.scenarios) throw new Error(data.error ?? "Scenario gagal dibaca"); if (active) setScenarios(data.scenarios); }).catch((cause: unknown) => active && setError(cause instanceof Error ? cause.message : "Scenario gagal dibaca")).finally(() => active && setBusy(false)); return () => { active = false; }; }, []);
