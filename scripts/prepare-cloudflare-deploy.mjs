@@ -27,7 +27,6 @@ config.compatibility_date = optional("CLOUDFLARE_COMPATIBILITY_DATE", "2026-07-3
 config.compatibility_flags = [...new Set([...(config.compatibility_flags ?? []), "nodejs_compat"])];
 config.workers_dev = false;
 config.preview_urls = false;
-config.routes = [{ pattern: hostname, custom_domain: true }];
 config.observability = {
   enabled: true,
   logs: { enabled: true, head_sampling_rate: 1 },
@@ -61,4 +60,4 @@ await Promise.all([
 // Vinext's generated redirect is rooted at the repository, while the action
 // must run beside wrangler.json so its automatic secret upload sees the Worker.
 await rm(deployRedirectPath, { force: true });
-console.log(`Production deployment config generated for ${hostname}.`);
+console.log(`Production deployment config generated for ${hostname}. Route management is left to the existing Cloudflare setup.`);
