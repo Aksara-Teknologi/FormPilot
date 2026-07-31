@@ -9,6 +9,13 @@ updates:
       timezone: Asia/Jakarta
     open-pull-requests-limit: 5
     groups:
+      react-runtime:
+        patterns:
+          - react
+          - react-dom
+          - react-server-dom-webpack
+          - "@types/react"
+          - "@types/react-dom"
       production-dependencies:
         dependency-type: production
       development-dependencies:
