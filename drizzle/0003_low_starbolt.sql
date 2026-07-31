@@ -1,0 +1,2 @@
+DROP INDEX `input_history_owner_row_target_idx`;--> statement-breakpoint
+CREATE UNIQUE INDEX `input_history_owner_file_row_target_idx` ON `input_history` (`owner_id`,`file_name`,`row_number`,`target_origin`);

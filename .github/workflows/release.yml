@@ -1,0 +1,106 @@
+name: Release production
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag release, contoh v0.2.0"
+        required: true
+        default: "v0.2.0"
+      publish_github_release:
+        description: "Buat atau perbarui GitHub Release"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  deployments: write
+
+concurrency:
+  group: formpilot-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate, migrate, and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://form-pilot.aksarateknologi.com/
+    env:
+      CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+      CLOUDFLARE_D1_DATABASE_NAME: ${{ vars.CLOUDFLARE_D1_DATABASE_NAME }}
+      CLOUDFLARE_WORKER_NAME: ${{ vars.CLOUDFLARE_WORKER_NAME }}
+      FORMPILOT_HOSTNAME: ${{ vars.FORMPILOT_HOSTNAME }}
+      TEAM_DOMAIN: ${{ vars.TEAM_DOMAIN }}
+      POLICY_AUD: ${{ vars.POLICY_AUD }}
+      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+      ALLOWED_TARGET_HOSTS: ${{ vars.ALLOWED_TARGET_HOSTS }}
+      MCP_SERVER_URL: ${{ vars.MCP_SERVER_URL }}
+      MCP_INSPECT_TOOL: ${{ vars.MCP_INSPECT_TOOL }}
+      MCP_FILL_TOOL: ${{ vars.MCP_FILL_TOOL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate release build
+        run: npm run check
+
+      - name: Verify and prepare production config
+        run: |
+          npm run release:verify
+          npm run release:config
+
+      - name: Apply D1 migrations and deploy Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.92.0"
+          preCommands: wrangler d1 migrations apply DB --remote --config dist/server/wrangler.production.json
+          command: deploy --config dist/server/wrangler.production.json --keep-vars --strict
+          secrets: |
+            APP_SIGNING_SECRET
+            OPENAI_API_KEY
+        env:
+          APP_SIGNING_SECRET: ${{ secrets.APP_SIGNING_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Package release artifacts
+        run: npm run release:package
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: formpilot-${{ github.ref_name }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' || inputs.publish_github_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" artifacts/* --clobber
+          else
+            gh release create "$RELEASE_TAG" artifacts/* --target "$GITHUB_SHA" --generate-notes --title "FormPilot $RELEASE_TAG"
+          fi

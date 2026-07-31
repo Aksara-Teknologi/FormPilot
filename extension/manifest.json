@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "FormPilot Browser Bridge",
+  "version": "0.2.0",
+  "description": "Hubungkan satu tab browser yang dipilih pengguna ke FormPilot tanpa membagikan cookie atau password.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "Hubungkan tab ini ke FormPilot"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://form-pilot.aksarateknologi.com/*",
+        "http://localhost:3000/*"
+      ],
+      "js": ["formpilot-bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
