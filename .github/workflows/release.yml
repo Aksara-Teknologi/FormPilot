@@ -66,24 +66,29 @@ jobs:
           npm run release:verify
           npm run release:config
 
-      - name: Apply D1 migrations and deploy Worker
-        id: deploy
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.118.0"
-          workingDirectory: dist/server
-          preCommands: wrangler d1 migrations apply DB --remote
-          command: deploy --keep-vars --strict
-          secrets: |
-            APP_SIGNING_SECRET
-            GOOGLE_CLIENT_SECRET
-            OPENAI_API_KEY
+      - name: Apply D1 migrations
+        working-directory: dist/server
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler d1 migrations apply DB --remote --config wrangler.production.json
+
+      - name: Upload Worker secrets
+        working-directory: dist/server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           APP_SIGNING_SECRET: ${{ secrets.APP_SIGNING_SECRET }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          printf '%s' "$APP_SIGNING_SECRET" | npx wrangler secret put APP_SIGNING_SECRET --config wrangler.production.json
+          printf '%s' "$GOOGLE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_CLIENT_SECRET --config wrangler.production.json
+          printf '%s' "$OPENAI_API_KEY" | npx wrangler secret put OPENAI_API_KEY --config wrangler.production.json
+
+      - name: Deploy Worker
+        working-directory: dist/server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy --keep-vars --strict --config wrangler.production.json
 
       - name: Package release artifacts
         run: npm run release:package
