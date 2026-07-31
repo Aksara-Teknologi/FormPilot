@@ -387,7 +387,14 @@ export default function FormPilot({ email }: { email: string }) {
           <Link className="nav-link" href="/workflows">Flows</Link>
           <Link className="nav-link" href="/knowledge">Knowledge</Link>
           <Pill ok={allReady}>{allReady ? "Semua sistem siap" : "Perlu konfigurasi"}</Pill>
-          {email === "Mode lokal" ? <span className="avatar" title={email}>L</span> : <a className="avatar" href="/api/auth/logout" title={`Keluar dari ${email}`} aria-label={`Keluar dari akun ${email}`}>{email.slice(0, 1).toUpperCase()}</a>}
+          {email === "Mode lokal" ? (
+            <span className="avatar" title={email}>L</span>
+          ) : (
+            <>
+              <span className="avatar" title={email} aria-label={`Akun ${email}`}>{email.slice(0, 1).toUpperCase()}</span>
+              <a className="nav-link" href="/api/auth/logout" title={`Keluar dari ${email}`} aria-label={`Keluar dari akun ${email}`}>Keluar</a>
+            </>
+          )}
         </div>
       </header>
 
