@@ -46,6 +46,9 @@ test("deploys Cloudflare through explicit wrangler steps", async () => {
   assert.match(workflow, /Upload Worker secrets/);
   assert.match(workflow, /Deploy Worker/);
   assert.match(workflow, /working-directory: dist\/server/);
+  assert.match(workflow, /wrangler d1 migrations apply DB --remote --config wrangler\.production\.json/);
+  assert.match(workflow, /wrangler secret put APP_SIGNING_SECRET --config wrangler\.production\.json/);
+  assert.match(workflow, /wrangler deploy --keep-vars --strict --config wrangler\.production\.json/);
   assert.match(releaseConfig, /writeFile\(sourcePath, serializedConfig/);
   assert.doesNotMatch(releaseConfig, /config\.routes = \[\{ pattern: hostname, custom_domain: true \}\]/);
 });
