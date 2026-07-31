@@ -16,10 +16,27 @@ updates:
           - react-server-dom-webpack
           - "@types/react"
           - "@types/react-dom"
+        update-types:
+          - minor
+          - patch
+      cloudflare-toolchain:
+        patterns:
+          - "@cloudflare/vite-plugin"
+          - "@cloudflare/workers-types"
+          - wrangler
+        update-types:
+          - minor
+          - patch
       production-dependencies:
         dependency-type: production
+        update-types:
+          - minor
+          - patch
       development-dependencies:
         dependency-type: development
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: /

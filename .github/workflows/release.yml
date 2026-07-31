@@ -72,7 +72,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: "4.92.0"
+          wranglerVersion: "4.118.0"
           preCommands: wrangler d1 migrations apply DB --remote --config dist/server/wrangler.production.json
           command: deploy --config dist/server/wrangler.production.json --keep-vars --strict
           secrets: |
