@@ -27,7 +27,7 @@ Tambahkan environment variables:
 | `POLICY_AUD` | Ya | Audience tag aplikasi Access |
 | `OPENAI_BASE_URL` | Tidak | `https://api.openai.com/v1` atau endpoint compatible |
 | `OPENAI_MODEL` | Ya | Nama model pada endpoint tersebut |
-| `ALLOWED_TARGET_HOSTS` | Ya | Daftar hostname dipisahkan koma |
+| `ALLOWED_TARGET_HOSTS` | Tidak | Allowlist hostname dipisahkan koma; kosong berarti semua target HTTPS |
 | `MCP_SERVER_URL` | Tidak | Kosongkan bila memakai Browser Bridge |
 | `MCP_INSPECT_TOOL` | Tidak | Default `inspect_form` |
 | `MCP_FILL_TOOL` | Tidak | Default `fill_form` |
