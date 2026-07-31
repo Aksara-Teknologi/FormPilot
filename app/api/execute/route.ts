@@ -13,10 +13,11 @@ export async function POST(request: Request) {
     if (typeof record.approvalToken !== "string") throw new Error("Persetujuan sudah tidak berlaku");
     if (submit && record.confirmSubmit !== true) throw new Error("Konfirmasi submit wajib diberikan");
     const plan = record.plan as FormPlan;
-    if (!await verifyApprovalToken(record.approvalToken, currentUser(request), plan)) {
+    const user = await currentUser(request);
+    if (!await verifyApprovalToken(record.approvalToken, user, plan)) {
       return Response.json({ error: "Token persetujuan tidak valid atau kedaluwarsa" }, { status: 403 });
     }
-    const result = await executePlan(plan, submit, currentUser(request));
+    const result = await executePlan(plan, submit, user);
     return Response.json({ ok: true, mode: submit ? "submitted" : "draft-filled", result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Eksekusi gagal";

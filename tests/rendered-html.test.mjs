@@ -18,6 +18,25 @@ test("renders the FormPilot operator and product credit", async () => {
   assert.match(layout, /FormPilot/);
 });
 
+test("uses direct Google OIDC with bounded scopes and protected session cookies", async () => {
+  const [authorize, callback, auth, worker, releaseConfig] = await Promise.all([
+    file("app/api/auth/google/route.ts"),
+    file("app/api/auth/google/callback/route.ts"),
+    file("lib/auth.ts"),
+    file("worker/index.ts"),
+    file("scripts/prepare-cloudflare-deploy.mjs"),
+  ]);
+  assert.match(authorize, /scope: "openid email profile"/);
+  assert.match(authorize, /state/);
+  assert.match(authorize, /nonce/);
+  assert.match(authorize, /code_challenge_method: "S256"/);
+  assert.match(callback, /code_verifier: flow\.verifier/);
+  assert.match(auth, /email_verified !== true/);
+  assert.match(auth, /HttpOnly; SameSite=Lax/);
+  assert.doesNotMatch(worker, /cf-access-jwt-assertion/);
+  assert.doesNotMatch(releaseConfig, /TEAM_DOMAIN|POLICY_AUD/);
+});
+
 test("scopes Knowledge Packs to the authenticated user and applies them before AI", async () => {
   const [route, storage, planner, migration] = await Promise.all([
     file("app/api/knowledge-packs/route.ts"),

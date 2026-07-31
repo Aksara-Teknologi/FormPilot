@@ -10,7 +10,7 @@ type SafeConfig = {
   model: { ready: boolean; model: string | null; baseUrl: string };
   mcp: { ready: boolean; endpoint: string | null };
   approval: { ready: boolean };
-  access: { ready: boolean };
+  auth: { ready: boolean };
   allowedHosts: string[];
 };
 
@@ -116,7 +116,7 @@ export default function FormPilot({ email }: { email: string }) {
   }, []);
 
   const browserReady = bridge.connected || Boolean(config?.mcp.ready);
-  const allReady = Boolean(config?.model.ready && browserReady && config?.approval.ready && config?.access.ready);
+  const allReady = Boolean(config?.model.ready && browserReady && config?.approval.ready && config?.auth.ready);
   const progress = useMemo(() => stage === 1 ? "33%" : stage === 2 ? "66%" : "100%", [stage]);
   const unanswered = plan?.mappings.filter((mapping) => mapping.method === "manual" && !mapping.sensitive && mapping.value === null).length ?? 0;
   const matchingScenarios = useMemo(() => {
@@ -387,7 +387,7 @@ export default function FormPilot({ email }: { email: string }) {
           <Link className="nav-link" href="/workflows">Flows</Link>
           <Link className="nav-link" href="/knowledge">Knowledge</Link>
           <Pill ok={allReady}>{allReady ? "Semua sistem siap" : "Perlu konfigurasi"}</Pill>
-          <button className="avatar" title={email} aria-label={`Akun ${email}`}>{email === "Mode lokal" ? "L" : email.slice(0, 1).toUpperCase()}</button>
+          {email === "Mode lokal" ? <span className="avatar" title={email}>L</span> : <a className="avatar" href="/api/auth/logout" title={`Keluar dari ${email}`} aria-label={`Keluar dari akun ${email}`}>{email.slice(0, 1).toUpperCase()}</a>}
         </div>
       </header>
 
@@ -472,12 +472,12 @@ export default function FormPilot({ email }: { email: string }) {
           <aside className="side-column">
             <section className="side-card">
               <div className="side-title"><div><p>STATUS KONEKSI</p><h3>Fondasi aman</h3></div><button onClick={() => setShowSetup(!showSetup)}>{showSetup ? "Tutup" : "Atur"}</button></div>
-              <div className="connection"><span className="connection-icon">G</span><div><strong>Google SSO</strong><small>Cloudflare Access</small></div><Pill ok={Boolean(config?.access.ready)}>{config?.access.ready ? "Aktif" : "Setup"}</Pill></div>
+              <div className="connection"><span className="connection-icon">G</span><div><strong>Google SSO</strong><small>OAuth langsung</small></div><Pill ok={Boolean(config?.auth.ready)}>{config?.auth.ready ? "Aktif" : "Setup"}</Pill></div>
               <div className="connection"><span className="connection-icon coral">AI</span><div><strong>Model API</strong><small>{config?.model.model ?? "OpenAI-compatible"}</small></div><Pill ok={Boolean(config?.model.ready)}>{config?.model.ready ? "Aktif" : "Setup"}</Pill></div>
               <div className="connection"><span className="connection-icon mint">B</span><div><strong>Browser Bridge</strong><small>{bridge.target?.title ?? (config?.mcp.ready ? "MCP server-side" : "Extension lokal")}</small></div><Pill ok={browserReady}>{browserReady ? "Aktif" : "Setup"}</Pill></div>
               <label className="submit-setting">Konfirmasi submit<select value={submitPolicy} onChange={(event) => saveSubmitPolicy(event.target.value as SubmitPolicy)} disabled={busy}><option value="always_ask">Tanyakan dulu</option><option value="auto_submit">Tidak perlu konfirmasi</option></select></label>
               {showSetup && <div className="setup-panel">
-                <p><b>1.</b> Aktifkan Google sebagai IdP di Cloudflare Access.</p>
+                <p><b>1.</b> Buat OAuth Client tipe Web di Google Cloud.</p>
                 <p><b>2.</b> Isi <code>OPENAI_BASE_URL</code>, <code>OPENAI_MODEL</code>, dan secret <code>OPENAI_API_KEY</code>.</p>
                 <p><b>3.</b> Isi endpoint MCP, token, signing secret, dan allowlist domain.</p>
                 <span>Nilai secret tidak pernah ditampilkan kembali.</span>

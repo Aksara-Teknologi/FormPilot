@@ -12,7 +12,7 @@ export async function GET() {
       endpoint: readEnv("MCP_SERVER_URL") ? "Terkonfigurasi" : null,
     },
     approval: { ready: hasEnv("APP_SIGNING_SECRET") },
-    access: { ready: hasEnv("TEAM_DOMAIN") && hasEnv("POLICY_AUD") },
+    auth: { ready: hasEnv("GOOGLE_CLIENT_ID") && hasEnv("GOOGLE_CLIENT_SECRET") && hasEnv("APP_SIGNING_SECRET") },
     allowedHosts: readEnv("ALLOWED_TARGET_HOSTS")?.split(",").filter(Boolean) ?? [],
   }, { headers: { "Cache-Control": "no-store" } });
 }

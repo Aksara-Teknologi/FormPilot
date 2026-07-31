@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     for (const mapping of plan.mappings) {
       if (mapping.sensitive && mapping.value !== null) throw new Error("Data sensitif harus diisi langsung di browser tujuan");
     }
-    const approvalToken = await createApprovalToken(currentUser(request), plan);
+    const approvalToken = await createApprovalToken(await currentUser(request), plan);
     if (!approvalToken) throw new Error("APP_SIGNING_SECRET belum dikonfigurasi");
     return Response.json({ approvalToken });
   } catch (error) {

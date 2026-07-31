@@ -13,6 +13,7 @@ Tambahkan environment secrets:
 | `CLOUDFLARE_API_TOKEN` | Token terbatas untuk Workers Scripts, D1, dan route/custom domain pada account produksi |
 | `CLOUDFLARE_ACCOUNT_ID` | Account ID Cloudflare |
 | `APP_SIGNING_SECRET` | Random secret minimal 32 byte |
+| `GOOGLE_CLIENT_SECRET` | Secret OAuth Web client dari Google Cloud |
 | `OPENAI_API_KEY` | Key endpoint model OpenAI-compatible |
 
 Tambahkan environment variables:
@@ -23,8 +24,8 @@ Tambahkan environment variables:
 | `CLOUDFLARE_D1_DATABASE_NAME` | Tidak | `formpilot-production` |
 | `CLOUDFLARE_WORKER_NAME` | Tidak | `formpilot` |
 | `FORMPILOT_HOSTNAME` | Tidak | `form-pilot.aksarateknologi.com` |
-| `TEAM_DOMAIN` | Ya | `https://nama-team.cloudflareaccess.com` |
-| `POLICY_AUD` | Ya | Audience tag aplikasi Access |
+| `GOOGLE_CLIENT_ID` | Ya | Client ID OAuth Web, berakhiran `.apps.googleusercontent.com` |
+| `GOOGLE_ALLOWED_DOMAINS` | Tidak | Domain email login yang diizinkan, dipisahkan koma |
 | `OPENAI_BASE_URL` | Tidak | `https://api.openai.com/v1` atau endpoint compatible |
 | `OPENAI_MODEL` | Ya | Nama model pada endpoint tersebut |
 | `ALLOWED_TARGET_HOSTS` | Tidak | Allowlist hostname dipisahkan koma; kosong berarti semua target HTTPS |
@@ -34,12 +35,16 @@ Tambahkan environment variables:
 
 Jika remote MCP digunakan, tambahkan `MCP_AUTH_TOKEN` langsung sebagai Worker secret melalui dashboard atau Wrangler. Browser Bridge tidak memerlukan token ini.
 
-## 2. Cloudflare Access
+## 2. Google OAuth
 
-1. Tambahkan Google/Google Workspace sebagai identity provider.
-2. Buat aplikasi Access untuk `form-pilot.aksarateknologi.com`.
-3. Batasi policy ke email, domain, atau grup yang diizinkan.
-4. Pastikan hostname `workers.dev` tidak menjadi jalur publik alternatif.
+1. Konfigurasikan OAuth consent screen pada Google Cloud.
+2. Buat OAuth Client bertipe **Web application**.
+3. Tambahkan authorized JavaScript origin `https://form-pilot.aksarateknologi.com`.
+4. Tambahkan authorized redirect URI persis `https://form-pilot.aksarateknologi.com/api/auth/google/callback`.
+5. Untuk lokal, tambahkan `http://localhost:3000/api/auth/google/callback` bila login Google lokal ingin diuji.
+6. Gunakan scope dasar `openid`, `email`, dan `profile`; jangan tambahkan Drive atau Gmail.
+
+Jika aplikasi OAuth masih berstatus Testing, Google membatasi akun test yang didaftarkan. Untuk penggunaan publik, selesaikan konfigurasi consent screen dan ubah publishing status sesuai kebijakan Google.
 
 ## 3. Membuat release
 

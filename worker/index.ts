@@ -1,7 +1,6 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
-import { createRemoteJWKSet, jwtVerify } from "jose";
 
 interface Env {
   ASSETS: Fetcher;
@@ -13,8 +12,6 @@ interface Env {
       };
     };
   };
-  TEAM_DOMAIN?: string;
-  POLICY_AUD?: string;
 }
 
 interface ExecutionContext {
@@ -31,25 +28,6 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
-
-    if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
-      if (!env.TEAM_DOMAIN || !env.POLICY_AUD) {
-        return new Response("Google SSO belum dikonfigurasi untuk environment ini.", { status: 503 });
-      }
-      const token = request.headers.get("cf-access-jwt-assertion");
-      if (!token) return new Response("Unauthorized", { status: 401 });
-      try {
-        const jwks = createRemoteJWKSet(new URL(`${env.TEAM_DOMAIN.replace(/\/$/, "")}/cdn-cgi/access/certs`));
-        const { payload } = await jwtVerify(token, jwks, { issuer: env.TEAM_DOMAIN, audience: env.POLICY_AUD });
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.delete("cf-access-authenticated-user-email");
-        if (typeof payload.email === "string") requestHeaders.set("cf-access-authenticated-user-email", payload.email);
-        request = new Request(request, { headers: requestHeaders });
-      } catch (error) {
-        console.warn(JSON.stringify({ message: "access_jwt_rejected", path: url.pathname, reason: error instanceof Error ? error.name : "unknown" }));
-        return new Response("Unauthorized", { status: 401 });
-      }
-    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

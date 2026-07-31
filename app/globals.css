@@ -23,7 +23,16 @@ button { color: inherit; }
 .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; background: var(--coral); border: 1px solid var(--ink); border-radius: 8px 8px 8px 2px; box-shadow: 3px 3px 0 var(--ink); color: white; font-family: var(--font-geist-mono); font-size: 17px; }
 .top-actions { display: flex; gap: 12px; align-items: center; }
 .nav-link { color: var(--ink); font: 700 11px var(--font-geist-mono); text-decoration-color: var(--coral); text-underline-offset: 4px; }
-.avatar { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--ink); background: var(--ink); color: white; font-weight: 700; cursor: default; }
+.avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--ink); background: var(--ink); color: white; font-weight: 700; text-decoration: none; cursor: default; }
+.avatar[href] { cursor: pointer; }
+.login-shell { min-height: 100vh; display: grid; grid-template-rows: 1fr auto; padding: clamp(24px, 6vw, 72px); background-image: radial-gradient(rgba(19,35,31,.075) .7px, transparent .7px); background-size: 14px 14px; }
+.login-card { width: min(570px, 100%); margin: auto; border: 1px solid var(--ink); background: var(--paper); padding: clamp(30px, 6vw, 58px); box-shadow: 8px 8px 0 var(--ink); }
+.login-card .eyebrow { margin-top: 52px; }
+.login-card h1 { margin: 16px 0; font-size: clamp(39px, 6vw, 62px); line-height: .95; letter-spacing: -2.8px; }
+.login-card > p:not(.eyebrow) { color: var(--muted); line-height: 1.6; }
+.google-login { min-height: 54px; margin: 28px 0 18px; display: flex; align-items: center; justify-content: center; gap: 13px; border: 1px solid var(--ink); background: white; color: var(--ink); text-decoration: none; font-weight: 750; box-shadow: 4px 4px 0 var(--coral); }
+.google-login b { color: #4285f4; font-size: 20px; }
+.login-card > small { color: var(--muted); line-height: 1.5; }
 .status-pill { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font: 620 11px/1 var(--font-geist-mono); text-transform: uppercase; letter-spacing: .4px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 999px; background: white; }
 .status-pill.ok { background: #e6f4ec; border-color: #b8daca; color: #1c6b4b; }
 .status-pill.warn { background: #fff4d6; border-color: #ead497; color: #855f00; }
