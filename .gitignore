@@ -43,6 +43,7 @@ next-env.d.ts
 /outputs/
 /work/
 /artifacts/
+public/downloads/*.zip
 
 # generated production deployment config (contains account resource IDs)
 /dist/server/wrangler.production.json

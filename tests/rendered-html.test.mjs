@@ -26,6 +26,7 @@ test("renders the FormPilot operator and product credit", async () => {
   assert.match(sitemap, /form-pilot\.aksarateknologi\.com/);
   assert.match(extensionGuide, /Load unpacked/);
   assert.match(extensionGuide, /chrome:\/\/extensions/);
+  assert.match(extensionGuide, /formpilot-browser-bridge\.zip/);
 });
 
 test("uses direct Google OIDC with bounded scopes and protected session cookies", async () => {

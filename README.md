@@ -52,7 +52,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Buka `http://localhost:3000`. Untuk mengisi form sungguhan, instal extension dari folder [`extension`](./extension) melalui mode **Load unpacked** pada Chrome atau Edge.
+Buka `http://localhost:3000`. Untuk mengisi form sungguhan, instal extension dari folder [`extension`](./extension) melalui mode **Load unpacked** pada Chrome atau Edge. Instalasi publik juga tersedia di halaman `/extension` aplikasi.
 
 ## Deploy sendiri ke Cloudflare Workers
 
