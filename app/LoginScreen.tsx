@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function LoginScreen({ ready }: { ready: boolean }) {
   return <main className="landing-shell">
-    <header className="landing-nav"><Link className="brand" href="/"><span className="brand-mark">F</span>FormPilot</Link>{ready ? <a className="landing-login" href="/api/auth/google?return_to=/">Masuk dengan Google</a> : null}</header>
+    <header className="landing-nav"><Link className="brand" href="/"><span className="brand-mark">F</span>FormPilot</Link><div><Link className="landing-help" href="/extension">Pasang extension</Link>{ready ? <a className="landing-login" href="/api/auth/google?return_to=/">Masuk dengan Google</a> : null}</div></header>
     <section className="landing-hero">
       <p className="eyebrow"><span /> ASISTEN PENGISIAN FORM</p>
       <h1>Isi banyak form dari Excel, <em>tanpa kerja berulang.</em></h1>
