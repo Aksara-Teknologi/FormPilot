@@ -79,11 +79,11 @@ function extractJsonObject(text: string): string {
 function normalizeAction(value: unknown): WorkflowStep["action"] | null {
   if (typeof value !== "string") return null;
   const action = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  if (["find_row", "findrow", "search_row", "search", "find", "cari_baris", "cari"].includes(action)) return "find_row";
-  if (["click", "klik", "press", "tap", "select"].includes(action)) return "click";
-  if (["wait_for", "wait", "wait_until", "tunggu", "tunggu_sampai"].includes(action)) return "wait_for";
-  if (["fill", "input", "type", "set_value", "isi", "isi_field"].includes(action)) return "fill";
-  if (["pause", "stop", "review", "manual", "berhenti", "tinjau"].includes(action)) return "pause";
+  if (["find_row", "findrow", "search_row", "search", "find", "lookup", "locate", "locate_row", "find_table_row", "search_table", "filter", "filter_row", "cari_baris", "cari_data", "temukan_baris", "cari"].includes(action)) return "find_row";
+  if (["click", "klik", "press", "tap", "select", "open", "buka"].includes(action)) return "click";
+  if (["wait_for", "wait", "wait_until", "wait_modal", "tunggu", "tunggu_sampai", "tunggu_modal"].includes(action)) return "wait_for";
+  if (["fill", "input", "type", "set_value", "enter_text", "isi", "isi_field", "isi_form"].includes(action)) return "fill";
+  if (["pause", "stop", "review", "manual", "halt", "berhenti", "tinjau"].includes(action)) return "pause";
   return null;
 }
 
@@ -92,7 +92,14 @@ export function validateWorkflowSteps(value: unknown): WorkflowStep[] {
   return value.map((item, index) => {
     if (!item || typeof item !== "object") throw new Error(`Langkah ${index + 1} tidak valid`);
     const row = item as Record<string, unknown>;
-    const action = normalizeAction(row.action);
+    // Some OpenAI-compatible models return a descriptive action name despite the
+    // schema. Infer only from an unambiguous, schema-shaped step; never infer a
+    // browser selector or arbitrary operation.
+    const action = normalizeAction(row.action)
+      ?? ((typeof row.sourceKey === "string" || typeof row.source_key === "string") && (typeof row.buttonText === "string" || typeof row.button_text === "string") ? "find_row" : null)
+      ?? ((typeof row.fieldLabel === "string" || typeof row.field_label === "string") && (typeof row.sourceKey === "string" || typeof row.source_key === "string") ? "fill" : null)
+      ?? ((typeof row.waitFor === "string" || typeof row.wait_for === "string") ? "wait_for" : null)
+      ?? ((typeof row.message === "string" || typeof row.reason === "string") ? "pause" : null);
     const description = typeof row.description === "string" ? row.description.trim().slice(0, 240) : `Langkah ${index + 1}`;
     const firstText = (...keys: string[]) => {
       for (const key of keys) {
@@ -121,7 +128,8 @@ export function validateWorkflowSteps(value: unknown): WorkflowStep[] {
       return { action, fieldLabel, sourceKey, description };
     }
     if (action === "pause") return { action, message: firstText("message", "text", "reason", "description"), description };
-    throw new Error(`Langkah ${index + 1}: aksi tidak dikenal`);
+    const rawAction = typeof row.action === "string" ? row.action.trim().slice(0, 80) : JSON.stringify(row.action);
+    throw new Error(`Langkah ${index + 1}: aksi tidak dikenal (${rawAction || "kosong"})`);
   });
 }
 
@@ -163,7 +171,7 @@ export async function compileWorkflow(prompt: string, siteOrigin: string): Promi
     const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({
       model, temperature: 0, max_tokens: 1200, stream: false, response_format: { type: "json_object" }, messages: [
         { role: "system", content: `${WORKFLOW_SYSTEM_PROMPT}\n\nOrigin: ${siteOrigin}` },
-        { role: "user", content: `Compile this workflow instruction:\n${prompt}` },
+        { role: "user", content: `Compile this workflow instruction:\n${prompt}\n\nReturn the JSON object now. Every steps[].action must be exactly one of: find_row, click, wait_for, fill, pause.` },
       ],
     }) });
     if (!response.ok) throw new Error(`Model gagal (${response.status})`);
