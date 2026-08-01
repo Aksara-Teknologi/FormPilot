@@ -382,6 +382,7 @@ export default function FormPilot({ email }: { email: string }) {
       <header className="topbar">
         <a className="brand" href="#top" aria-label="FormPilot beranda"><span className="brand-mark">F</span>FormPilot</a>
         <div className="top-actions">
+          <Link className="nav-link" href="/extension">Pasang extension</Link>
           <Link className="nav-link" href="/workflows">Langkah otomatis</Link>
           <Link className="nav-link" href="/knowledge">Knowledge</Link>
           {email === "Mode lokal" ? (
