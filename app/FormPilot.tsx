@@ -480,14 +480,14 @@ export default function FormPilot({ email }: { email: string }) {
               <div className="connection"><span className="connection-icon mint">B</span><div><strong>Tab form</strong><small>{bridge.target?.title ?? "Hubungkan setelah login ke situs tujuan"}</small></div><Pill ok={bridge.connected}>{bridge.connected ? "Terhubung" : "Belum terhubung"}</Pill></div>
               <label className="submit-setting">Konfirmasi submit<select value={submitPolicy} onChange={(event) => saveSubmitPolicy(event.target.value as SubmitPolicy)} disabled={busy}><option value="always_ask">Tanyakan dulu</option><option value="auto_submit">Tidak perlu konfirmasi</option></select></label>
               {showAiSettings && <div className="setup-panel">
-                <p><strong>Pilih cara menggunakan AI</strong></p>
-                <label><input type="radio" checked={aiMode === "included"} onChange={() => setAiMode("included")} /> Gunakan AI bawaan <small>Gratis untuk kebutuhan sederhana.</small></label>
-                <label><input type="radio" checked={aiMode === "personal"} onChange={() => setAiMode("personal")} /> Gunakan AI pribadi saya <small>Pakai akun AI Anda sendiri untuk pilihan model dan kapasitas yang lebih sesuai.</small></label>
-                {aiMode === "personal" && <>
+                <strong>Pilih cara menggunakan AI</strong>
+                <label className="ai-choice"><input type="radio" name="ai-mode" checked={aiMode === "included"} onChange={() => setAiMode("included")} /><span><b>Gunakan AI bawaan</b><small>Gratis untuk kebutuhan sederhana.</small></span></label>
+                <label className="ai-choice"><input type="radio" name="ai-mode" checked={aiMode === "personal"} onChange={() => setAiMode("personal")} /><span><b>Gunakan AI pribadi saya</b><small>Pakai akun AI Anda sendiri untuk pilihan model dan kapasitas yang lebih sesuai.</small></span></label>
+                {aiMode === "personal" && <div className="ai-fields">
                   <label>Alamat layanan AI<input value={aiBaseUrl} onChange={(event) => setAiBaseUrl(event.target.value)} placeholder="https://api.openai.com/v1" /></label>
                   <label>Nama model<input value={aiModel} onChange={(event) => setAiModel(event.target.value)} placeholder="Contoh: gpt-4.1-mini" /></label>
-                  <label>API key {config?.model.hasPersonalKey && <span>OPSIONAL JIKA TIDAK DIUBAH</span>}<input value={aiKey} onChange={(event) => setAiKey(event.target.value)} type="password" autoComplete="new-password" placeholder={config?.model.hasPersonalKey ? "Tersimpan aman — isi hanya untuk mengganti" : "Masukkan API key Anda"} /></label>
-                </>}
+                  <label>API key {config?.model.hasPersonalKey && <span>Opsional jika tidak diubah</span>}<input value={aiKey} onChange={(event) => setAiKey(event.target.value)} type="password" autoComplete="new-password" placeholder={config?.model.hasPersonalKey ? "Tersimpan aman — isi hanya untuk mengganti" : "Masukkan API key Anda"} /></label>
+                </div>}
                 <button className="secondary-button" onClick={saveAiSettings} disabled={busy}>Simpan pilihan AI</button>
                 <span>API key pribadi dienkripsi dan tidak pernah ditampilkan kembali.</span>
               </div>}
