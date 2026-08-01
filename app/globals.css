@@ -21,7 +21,7 @@ button { color: inherit; }
 .topbar { height: 76px; padding: 0 clamp(22px, 5vw, 80px); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: rgba(245,241,232,.88); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20; }
 .brand { color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 11px; font-size: 20px; font-weight: 780; letter-spacing: -.6px; }
 .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; background: var(--coral); border: 1px solid var(--ink); border-radius: 8px 8px 8px 2px; box-shadow: 3px 3px 0 var(--ink); color: white; font-family: var(--font-geist-mono); font-size: 17px; }
-.top-actions { display: flex; gap: 12px; align-items: center; }
+.top-actions { display: flex; gap: 12px; align-items: center; }.operator-nav { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: rgba(255,255,255,.64); }.operator-nav .nav-link { min-height: 32px; display: flex; align-items: center; padding: 0 11px; text-decoration: none; }.operator-nav .nav-link + .nav-link { border-left: 1px solid var(--line); }.operator-nav .nav-link:hover { background: var(--mint); }
 .nav-link { color: var(--ink); font: 700 11px var(--font-geist-mono); text-decoration-color: var(--coral); text-underline-offset: 4px; }
 .avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--ink); background: var(--ink); color: white; font-weight: 700; text-decoration: none; cursor: default; }
 .avatar[href] { cursor: pointer; }
@@ -180,7 +180,7 @@ footer a:hover { color: var(--coral); }
   .summary-row span { min-height: 24px; }.button-row.triple > * { width: 100%; }.main-button.compact { width: 100%; }.button-row { flex-wrap: wrap; }
   .browser-actions { grid-template-columns: 1fr; }.row-picker, .fallback-policy, .excel-settings, .workflow-runner { grid-template-columns: 1fr; }.workflow-runner > a { grid-column: auto; }.excel-drop { grid-template-columns: 42px 1fr; }.excel-drop b { grid-column: 2; }.header-editor > div:first-child { flex-direction: column; }
   .modal-actions > * { width: 100%; }.submit-setting { grid-template-columns: 1fr; }
-  .knowledge-hero { align-items: stretch; flex-direction: column; }.knowledge-metric { width: 100%; }.knowledge-pack > header { flex-direction: column; }.pack-actions { justify-content: space-between; }.rule-form { grid-template-columns: 1fr; }.top-actions .nav-link { display: none; }
+  .knowledge-hero { align-items: stretch; flex-direction: column; }.knowledge-metric { width: 100%; }.knowledge-pack > header { flex-direction: column; }.pack-actions { justify-content: space-between; }.rule-form { grid-template-columns: 1fr; }.operator-nav { display: none; }
   footer { align-items: flex-start; flex-direction: column; gap: 8px; }
 }
 
