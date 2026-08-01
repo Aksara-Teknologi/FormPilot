@@ -48,21 +48,34 @@ function extractJsonObject(text: string): string {
   return trimmed;
 }
 
+function normalizeAction(value: unknown): WorkflowStep["action"] | null {
+  if (typeof value !== "string") return null;
+  const action = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (["find_row", "findrow", "search_row", "search", "find", "cari_baris", "cari"].includes(action)) return "find_row";
+  if (["click", "klik", "press", "tap", "select"].includes(action)) return "click";
+  if (["wait_for", "wait", "wait_until", "tunggu", "tunggu_sampai"].includes(action)) return "wait_for";
+  if (["fill", "input", "type", "set_value", "isi", "isi_field"].includes(action)) return "fill";
+  if (["pause", "stop", "review", "manual", "berhenti", "tinjau"].includes(action)) return "pause";
+  return null;
+}
+
 export function validateWorkflowSteps(value: unknown): WorkflowStep[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 30) throw new Error("Scenario harus memiliki 1–30 langkah");
   return value.map((item, index) => {
     if (!item || typeof item !== "object") throw new Error(`Langkah ${index + 1} tidak valid`);
     const row = item as Record<string, unknown>;
-    const action = row.action;
+    const action = normalizeAction(row.action);
     const description = typeof row.description === "string" ? row.description.trim().slice(0, 240) : `Langkah ${index + 1}`;
-    const required = (key: string) => {
-      const result = typeof row[key] === "string" ? row[key].trim() : "";
-      if (!result || result.length > 200) throw new Error(`Langkah ${index + 1}: ${key} tidak valid`);
-      return result;
+    const firstText = (...keys: string[]) => {
+      for (const key of keys) {
+        const value = typeof row[key] === "string" ? row[key].trim() : "";
+        if (value) return value.slice(0, 200);
+      }
+      throw new Error(`Langkah ${index + 1}: ${keys[0]} tidak valid`);
     };
-    if (action === "find_row") return { action, sourceKey: required("sourceKey"), buttonText: required("buttonText"), description };
+    if (action === "find_row") return { action, sourceKey: firstText("sourceKey", "source_key", "column", "kolom", "key"), buttonText: firstText("buttonText", "button_text", "text", "target", "label"), description };
     if (action === "click") {
-      const text = required("text");
+      const text = firstText("text", "buttonText", "button_text", "target", "label");
       if (/submit|simpan|kirim|hapus|delete|bayar|payment/i.test(text)) {
         return {
           action: "pause",
@@ -72,14 +85,14 @@ export function validateWorkflowSteps(value: unknown): WorkflowStep[] {
       }
       return { action, text, description };
     }
-    if (action === "wait_for") return { action, text: required("text"), description };
+    if (action === "wait_for") return { action, text: firstText("text", "target", "label", "waitFor", "wait_for"), description };
     if (action === "fill") {
-      const fieldLabel = required("fieldLabel");
-      const sourceKey = required("sourceKey");
+      const fieldLabel = firstText("fieldLabel", "field_label", "field", "label", "target");
+      const sourceKey = firstText("sourceKey", "source_key", "column", "kolom", "valueFrom", "value_from");
       if (/password|pin|otp|captcha|secret|token|cvv|cvc/i.test(`${fieldLabel} ${sourceKey}`)) throw new Error(`Langkah ${index + 1}: field sensitif tidak diizinkan`);
       return { action, fieldLabel, sourceKey, description };
     }
-    if (action === "pause") return { action, message: required("message"), description };
+    if (action === "pause") return { action, message: firstText("message", "text", "reason", "description"), description };
     throw new Error(`Langkah ${index + 1}: aksi tidak dikenal`);
   });
 }

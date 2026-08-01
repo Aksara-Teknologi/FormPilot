@@ -95,6 +95,8 @@ test("compiles one-time prompts into bounded reusable browser workflows", async 
     file("app/workflows/WorkflowManager.tsx"),
   ]);
   assert.match(workflows, /value\.length > 30/);
+  assert.match(workflows, /normalizeAction/);
+  assert.match(workflows, /search_row/);
   assert.match(workflows, /Never handle password, OTP, CAPTCHA/);
   assert.match(workflows, /Berhenti sebelum tombol final/);
   assert.match(authorization, /referencedKeys/);
