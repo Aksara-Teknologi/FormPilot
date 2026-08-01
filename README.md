@@ -1,149 +1,144 @@
 # FormPilot
 
-FormPilot adalah aplikasi Cloudflare Worker untuk mempelajari form melalui MCP, memetakan data dengan Knowledge Packs dan model OpenAI-compatible, lalu mengisi atau mengirim form sesuai kebijakan pengguna.
+> Isi form berulang dari Excel—lebih cepat, tetap terkendali.
 
-Produk oleh [Aksara Bayu Teknologi](https://aksarateknologi.com). Domain produksi yang disiapkan: `https://form-pilot.aksarateknologi.com/`.
+[Demo](https://form-pilot.aksarateknologi.com/) · [Browser Bridge](./extension/README.md) · [Keamanan](./SECURITY.md)
 
-## Desain keamanan
+![Tampilan FormPilot](./public/og.png)
 
-- File `.xlsx` dibaca langsung di browser pengguna. File tidak diunggah atau disimpan oleh Worker; hanya baris yang dipilih masuk ke plan sementara.
-- Google SSO memakai OAuth 2.0/OIDC langsung dengan `state`, nonce, dan PKCE. Worker memvalidasi ID token Google lalu membuat cookie sesi HttpOnly; token Google tidak disimpan.
-- API key model, token MCP, dan signing secret hanya berada pada Worker secrets. UI hanya melihat status siap/tidak siap.
-- Target URL wajib HTTPS. `ALLOWED_TARGET_HOSTS` bersifat opsional untuk instalasi yang ingin membatasi otomatisasi ke daftar domain tertentu.
-- Password, OTP, CAPTCHA, PIN, token, dan secret tidak dikirim ke AI atau MCP autofill.
-- Plan berlaku 10 menit dan ditandatangani HMAC. Perubahan terhadap plan membuat token persetujuan tidak valid.
-- Isi draft dan submit adalah aksi berbeda. Submit membutuhkan konfirmasi eksplisit kedua.
-- Login ke situs target dilakukan sendiri oleh pengguna di tab lain. MCP harus memakai extension/local browser bridge dan hanya boleh mengakses tab yang disetujui pengguna.
-- Jawaban acak hanya diizinkan untuk field pilihan biasa. Field legal, deklarasi, identitas, keuangan, kesehatan, password, OTP, dan CAPTCHA tidak boleh diacak.
-- Kebijakan konfirmasi submit disimpan per pengguna: `Tanyakan dulu` atau `Tidak perlu konfirmasi`. Dialog pertama menyediakan pilihan **Ya, untuk seterusnya**, dan preferensi dapat diubah kembali dari panel status.
-- Knowledge Packs dan setiap aturannya selalu dibatasi oleh identitas Google pengguna. Pack dapat berlaku global atau hanya pada satu origin HTTPS.
+FormPilot adalah aplikasi web untuk membantu operator memindahkan data dari file Excel ke form web yang berulang. Pengguna login sendiri ke situs tujuan, memilih file Excel di perangkatnya, lalu FormPilot membantu mencocokkan dan mengisi field form. Untuk form yang memiliki tabel, tombol Edit, modal, atau wizard, pengguna dapat menyimpan alur khusus untuk form tersebut.
 
-## Alur pengguna
+## Untuk siapa?
 
-1. Pengguna login ke FormPilot dengan Google SSO.
-2. Pengguna membuka situs tujuan pada tab lain dan login sendiri.
-3. Pengguna menghubungkan tab tersebut melalui browser bridge; bridge tidak mengekspor cookie atau password.
-4. Pengguna memilih file `.xlsx`, worksheet, dan baris header. Nama header dapat disesuaikan sebelum memilih baris yang diproses; seluruh pembacaan tetap lokal.
-5. MCP merangkum form menjadi label, tipe field, opsi, dan aturan wajib.
-6. FormPilot mencocokkan kolom Excel, lalu menerapkan Knowledge Pack akun tersebut. Hanya field yang masih ambigu yang dikirim ke model.
-7. Semua jawaban—termasuk pilihan acak—ditampilkan pada layar review sebelum draft diisi atau form dikirim.
-8. Setelah aksi berhasil, FormPilot menyimpan riwayat baris per akun dan otomatis memilih baris Excel berikutnya yang belum sukses.
+- Tim operasional yang menginput banyak data ke portal web.
+- Admin yang menerima data dalam Excel dan harus mengisi form yang sama berulang kali.
+- Tim yang membutuhkan alur pengisian konsisten, tanpa menyerahkan kredensial situs kepada aplikasi.
 
-## Knowledge Packs per pengguna
+## Cara kerja
 
-Buka `/knowledge` atau klik **Knowledge** pada header. Setiap pack berisi:
+1. Buka situs tujuan di tab lain dan login seperti biasa.
+2. Hubungkan tab yang dipilih melalui Browser Bridge.
+3. Pilih file Excel, sheet, header, dan baris yang ingin diisi. File dibaca secara lokal di browser.
+4. FormPilot mencocokkan kolom Excel dengan field form. Aturan yang tersimpan untuk situs tersebut digunakan lebih dulu; AI hanya membantu bagian yang belum jelas.
+5. Tinjau hasilnya, isi sebagai draft atau kirim sesuai kebijakan yang dipilih.
+6. Riwayat sukses menandai baris yang selesai dan memilih baris berikutnya secara otomatis.
 
-- origin situs opsional, misalnya `https://portal.example.com`;
-- pencocok label/nama field, misalnya `Jenis usaha`;
-- perilaku: jawaban tetap, tanyakan pengguna, biarkan kosong, atau acak opsi aman.
+## Fitur utama
 
-Urutan planner adalah **Excel exact match → Knowledge Pack → model AI → fallback**. OTP, CAPTCHA, password, dan field sensitif tetap manual dan tidak dapat dioverride oleh Knowledge Pack. Implementasi awal ini memakai aturan terstruktur di D1 agar deterministik dan hemat token; dokumen bebas/semantic RAG dapat ditambahkan dengan Vectorize ketika volume pengetahuan membutuhkannya.
+- **Excel tetap lokal** — workbook tidak diunggah ke server FormPilot.
+- **Alur per form** — simpan langkah seperti “cari data → klik Edit → isi modal → berhenti sebelum Simpan” untuk satu situs/form tertentu.
+- **Knowledge Packs** — simpan jawaban atau aturan yang berulang untuk akun dan situs Anda.
+- **AI hemat token** — pencocokan nama dilakukan lokal terlebih dahulu; AI hanya menerima metadata field dan nama kolom yang ambigu, bukan nilai Excel.
+- **AI bawaan atau BYOK** — gunakan AI bawaan untuk kebutuhan sederhana atau masukkan endpoint, model, dan API key OpenAI-compatible milik Anda.
+- **Riwayat aman** — riwayat sukses menyimpan hash baris, bukan isi data Excel.
 
-Riwayat input tidak menyimpan nilai kolom Excel. Worker hanya menerima hash SHA-256 baris, nama file, nama sheet, nomor baris asli, origin target, jenis aksi (`draft`/`submit`), dan waktu sukses. Baris bertanda `✓` pada pemilih Excel sudah pernah berhasil untuk file, sheet, dan target tersebut.
+## Batas keamanan
 
-## Workflow Scenarios
+- Password, PIN, OTP, CAPTCHA, token, CVV/CVC, dan secret tidak dikirim ke AI dan tidak diisi otomatis.
+- Login situs target tetap dilakukan oleh pengguna di browser target; cookie dan password tidak diekspor oleh Browser Bridge.
+- Submit dapat diatur per akun: selalu tanyakan atau lanjut tanpa dialog tambahan.
+- Tombol akhir seperti Simpan, Kirim, Hapus, atau Bayar tidak dimasukkan dalam workflow AI; skenario berhenti sebelum tindakan tersebut.
+- API key BYOK dienkripsi per pengguna dan tidak pernah ditampilkan kembali.
 
-Buka `/workflows` untuk menjelaskan flow satu kali dengan bahasa biasa. Model mengompilasinya menjadi langkah terbatas (`find_row`, `click`, `wait_for`, `fill`, `pause`) dan menyimpannya per akun serta origin situs. Saat dijalankan ulang, scenario bersifat deterministik dan tidak memanggil model lagi. Browser Bridge mencocokkan teks/label yang terlihat, tidak menjalankan selector buatan model, menolak field sensitif, menjaga origin tab, serta berhenti sebelum tombol final seperti Simpan, Kirim, Hapus, atau Bayar.
+## Menjalankan secara lokal
 
-## Menjalankan lokal
+Prasyarat: Node.js 22+ dan akun Cloudflare bila ingin memakai D1/Workers.
 
 ```bash
+git clone https://github.com/Aksara-Teknologi/FormPilot.git
+cd FormPilot
 npm install
 cp .env.example .env.local
 npm run dev
 ```
 
-Tanpa secret, UI tetap dapat mendemonstrasikan inspeksi dan pemetaan lokal dengan data contoh. Jangan commit `.env.local`.
+Buka `http://localhost:3000`. Untuk mengisi form sungguhan, instal extension dari folder [`extension`](./extension) melalui mode **Load unpacked** pada Chrome atau Edge.
 
-## Browser Bridge lokal
+## Deploy sendiri ke Cloudflare Workers
 
-Extension siap pakai berada di folder [`extension`](./extension). Instal sebagai **Load unpacked** melalui `chrome://extensions` atau `edge://extensions`, kemudian pin ke toolbar. Instruksi lengkap tersedia di [`extension/README.md`](./extension/README.md).
+Bagian ini untuk instalasi mandiri. Ganti semua nilai contoh dengan domain dan akun Anda sendiri.
 
-Extension memakai izin `activeTab`, bukan akses permanen ke semua situs. Pengguna harus mengklik ikon FormPilot pada tab target setelah login. Izin berakhir ketika tab ditutup atau berpindah ke origin lain.
+### 1. Siapkan resource Cloudflare
 
-## Konfigurasi Cloudflare Worker
+1. Buat database D1.
+2. Buat Worker dan custom domain jika diperlukan.
+3. Salin `.env.example` untuk mencatat konfigurasi yang dibutuhkan.
+4. Isi GitHub repository secrets/variables atau environment deployment Anda sendiri.
 
-### 1. Google SSO
+Variabel non-rahasia yang diperlukan:
 
-1. Di Google Cloud, konfigurasikan OAuth consent screen dan buat OAuth Client bertipe **Web application**.
-2. Tambahkan origin `https://form-pilot.aksarateknologi.com`.
-3. Tambahkan redirect URI persis `https://form-pilot.aksarateknologi.com/api/auth/google/callback`.
-4. Isi `GOOGLE_CLIENT_ID`; simpan `GOOGLE_CLIENT_SECRET` dan `APP_SIGNING_SECRET` sebagai Worker secrets.
-5. Opsional: isi `GOOGLE_ALLOWED_DOMAINS` dengan domain email yang diizinkan, dipisahkan koma.
+```text
+CLOUDFLARE_D1_DATABASE_ID=
+CLOUDFLARE_D1_DATABASE_NAME=
+CLOUDFLARE_WORKER_NAME=
+FORMPILOT_HOSTNAME=app.example.com
+GOOGLE_CLIENT_ID=
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=
+```
 
-FormPilot hanya meminta scope `openid email profile`. Tidak ada batas 50 pengguna dari Cloudflare Access karena Access tidak dipakai untuk login aplikasi.
+Secrets yang diperlukan:
 
-### 2. Model OpenAI-compatible
+```text
+CLOUDFLARE_API_TOKEN=
+APP_SIGNING_SECRET=
+GOOGLE_CLIENT_SECRET=
+OPENAI_API_KEY=
+```
 
-Set konfigurasi non-rahasia `OPENAI_BASE_URL` dan `OPENAI_MODEL`. Simpan key sebagai secret:
+`OPENAI_API_KEY` dipakai sebagai AI bawaan. Pengguna tetap dapat memilih BYOK bila fitur tersebut diaktifkan.
+
+### 2. Konfigurasikan Google Sign-In
+
+1. Buat OAuth Client bertipe **Web application** di Google Cloud Console.
+2. Tambahkan origin aplikasi Anda, misalnya `https://app.example.com`.
+3. Tambahkan redirect URI: `https://app.example.com/api/auth/google/callback`.
+4. Simpan client ID sebagai `GOOGLE_CLIENT_ID` dan client secret sebagai `GOOGLE_CLIENT_SECRET`.
+5. Opsional: batasi domain email melalui `GOOGLE_ALLOWED_DOMAINS`, dipisahkan koma.
+
+FormPilot meminta scope `openid email profile` saja; tidak meminta akses Gmail atau Drive.
+
+### 3. Jalankan migrasi dan deploy
+
+Repository ini memiliki workflow GitHub Actions `Release production`. Atau deploy dengan Wrangler sesuai konfigurasi produksi yang dihasilkan proyek:
 
 ```bash
-npx wrangler secret put OPENAI_API_KEY
+npm run check
+npm run release:verify
+npm run release:config
+cd dist/server
+npx wrangler d1 migrations apply DB --remote --config wrangler.production.json
+npx wrangler deploy --config wrangler.production.json
 ```
 
-Endpoint harus menyediakan `POST /chat/completions` dan mendukung respons JSON object. FormPilot mengirim nama field dan nama key saja—bukan nilai data—ketika memerlukan bantuan model.
-
-### 3. MCP browser runner
-
-Simpan endpoint dan nama tool sebagai konfigurasi, kemudian simpan token sebagai secret:
+Atur secrets melalui Wrangler sebelum deploy pertama:
 
 ```bash
-npx wrangler secret put MCP_AUTH_TOKEN
-npx wrangler secret put APP_SIGNING_SECRET
+npx wrangler secret put APP_SIGNING_SECRET --config wrangler.production.json
+npx wrangler secret put GOOGLE_CLIENT_SECRET --config wrangler.production.json
+npx wrangler secret put OPENAI_API_KEY --config wrangler.production.json
 ```
 
-`APP_SIGNING_SECRET` sebaiknya berupa random 32 byte atau lebih. Contoh pembuatan lokal:
+Gunakan secret acak yang kuat untuk `APP_SIGNING_SECRET`, misalnya `openssl rand -base64 32`.
 
-```bash
-openssl rand -base64 32
-```
+## Konfigurasi Browser Bridge dan MCP
 
-## Kontrak MCP minimal
+Browser Bridge adalah pilihan paling aman untuk situs yang pengguna login sendiri: extension hanya bekerja pada tab yang disetujui pengguna. Petunjuk instalasi ada di [`extension/README.md`](./extension/README.md).
 
-Server MCP menggunakan Streamable HTTP dan menerima JSON-RPC `tools/call`.
-
-`inspect_form` menerima:
-
-```json
-{
-  "targetUrl": "https://portal.example.com/form",
-  "includeHidden": false,
-  "redactSensitive": true
-}
-```
-
-Hasil terstruktur:
-
-```json
-{
-  "fields": [
-    { "id": "email", "name": "work_email", "label": "Email kantor", "type": "email", "required": true }
-  ]
-}
-```
-
-`fill_form` menerima `targetUrl`, `actor`, `mappings`, `submit`, dan `stopOnUnexpectedNavigation`. `inspect_form` juga menerima `actor`; gunakan nilai identitas ini hanya sebagai namespace sesi browser. Runner harus:
-
-- memakai profil browser terisolasi per pengguna/run;
-- hanya mengendalikan tab yang telah disetujui melalui extension/local bridge;
-- menyimpan cookie/login hanya di vault atau session browser runner, tidak dalam hasil MCP;
-- menolak domain di luar allowlist;
-- tidak mengisi field sensitif;
-- menghentikan eksekusi saat DOM berubah secara tidak terduga;
-- mengembalikan ringkasan aksi yang sudah dilakukan tanpa kredensial atau isi field sensitif.
-
-## Mengapa hemat token
-
-1. MCP merangkum DOM menjadi metadata field yang kecil.
-2. Pencocokan nama dilakukan deterministik di Worker terlebih dahulu.
-3. Model hanya menerima field yang belum cocok dan daftar nama key.
-4. Nilai data tetap di Worker dan digabungkan setelah model mengembalikan nama key.
-5. Knowledge Pack menangani kasus berulang tanpa prompt atau embedding.
-6. Jika semua label cocok dari Excel/Knowledge, tidak ada panggilan model sama sekali.
+Instalasi yang memakai MCP server-side dapat mengatur `MCP_SERVER_URL`, `MCP_INSPECT_TOOL`, `MCP_FILL_TOOL`, serta secret `MCP_AUTH_TOKEN`. MCP harus memakai HTTPS, membatasi tab/domain yang disetujui, dan tidak mengembalikan kredensial atau data sensitif.
 
 ## Validasi
 
 ```bash
-npm run build
-npm run lint
+npm run check
 ```
+
+Perintah ini menjalankan lint, typecheck, test, dan audit dependensi produksi.
+
+## Kontribusi
+
+Issue dan pull request dipersilakan. Untuk perubahan yang menyentuh autentikasi, kredensial, Browser Bridge, atau otomatisasi form, baca [`SECURITY.md`](./SECURITY.md) terlebih dahulu.
+
+## Lisensi dan kredit
+
+FormPilot dikembangkan oleh [Aksara Bayu Teknologi](https://aksarateknologi.com/).
