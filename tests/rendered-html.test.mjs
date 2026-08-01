@@ -6,16 +6,23 @@ const root = new URL("../", import.meta.url);
 const file = (path) => readFile(new URL(path, root), "utf8");
 
 test("renders the FormPilot operator and product credit", async () => {
-  const [page, operator, layout] = await Promise.all([
+  const [page, operator, layout, login, robots, sitemap] = await Promise.all([
     file("app/page.tsx"),
     file("app/FormPilot.tsx"),
     file("app/layout.tsx"),
+    file("app/LoginScreen.tsx"),
+    file("app/robots.ts"),
+    file("app/sitemap.ts"),
   ]);
   assert.match(page, /<FormPilot email=\{email\}/);
   assert.match(operator, /AI FORM OPERATOR/);
   assert.match(operator, /Knowledge/);
   assert.match(operator, /Aksara Bayu Teknologi/);
   assert.match(layout, /FormPilot/);
+  assert.match(login, /Isi banyak form dari Excel/);
+  assert.match(login, /Mulai dengan Google/);
+  assert.match(robots, /disallow: \["\/api\/"\]/);
+  assert.match(sitemap, /form-pilot\.aksarateknologi\.com/);
 });
 
 test("uses direct Google OIDC with bounded scopes and protected session cookies", async () => {

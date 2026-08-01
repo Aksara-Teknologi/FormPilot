@@ -13,12 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const metadataBase = new URL(`${protocol}://${host}`);
   return {
     metadataBase,
-    title: "FormPilot — Input data, dengan kendali",
-    description: "AI operator untuk mempelajari, memetakan, dan mengisi form dengan persetujuan manusia.",
+    title: { default: "FormPilot — Isi form dari Excel lebih cepat", template: "%s | FormPilot" },
+    description: "FormPilot membantu mengisi form berulang dari Excel, menyimpan alur per form, dan menjaga data tetap di perangkat Anda.",
     alternates: { canonical: "https://form-pilot.aksarateknologi.com/" },
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
-    openGraph: { title: "FormPilot", description: "Input data, dengan kendali.", url: "https://form-pilot.aksarateknologi.com/", siteName: "FormPilot by Aksara Bayu Teknologi", images: [{ url: "/og.png", width: 1730, height: 909 }] },
-    twitter: { card: "summary_large_image", title: "FormPilot", description: "Input data, dengan kendali.", images: ["/og.png"] },
+    openGraph: { title: "FormPilot — Isi form dari Excel lebih cepat", description: "Buka form, pilih data Excel, lalu jalankan alur berulang dengan kendali Anda.", url: "https://form-pilot.aksarateknologi.com/", siteName: "FormPilot by Aksara Bayu Teknologi", images: [{ url: "/og.png", width: 1730, height: 909 }] },
+    twitter: { card: "summary_large_image", title: "FormPilot — Isi form dari Excel lebih cepat", description: "Buka form, pilih data Excel, lalu jalankan alur berulang dengan kendali Anda.", images: ["/og.png"] },
   };
 }
 
