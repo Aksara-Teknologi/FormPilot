@@ -13,6 +13,34 @@ export type WorkflowScenario = {
   steps: WorkflowStep[]; isActive: boolean; createdAt: number; updatedAt: number;
 };
 
+const WORKFLOW_SYSTEM_PROMPT = `You are FormPilot Workflow Compiler.
+
+Goal:
+Convert the user's Indonesian instruction into a deterministic browser workflow scenario for FormPilot. The workflow will run later against a browser tab and Excel row data. You are not a chat assistant in this task.
+
+Output contract:
+Return only valid JSON. No markdown, no prose, no comments, no code fences.
+Shape: {"name":"...","description":"...","steps":[...]}.
+Use 1 to 30 steps.
+
+Allowed step schemas:
+{"action":"find_row","sourceKey":"Excel header name","buttonText":"visible row button text","description":"short operational description"}
+{"action":"click","text":"visible non-final button/link text","description":"short operational description"}
+{"action":"wait_for","text":"visible text that confirms the next UI is ready","description":"short operational description"}
+{"action":"fill","fieldLabel":"visible form field label","sourceKey":"Excel header name","description":"short operational description"}
+{"action":"pause","message":"what the user must review or do manually","description":"short operational description"}
+
+Strict rules:
+- Stay inside the user's requested workflow and the provided origin.
+- Never invent data values. Use Excel sourceKey/header names only.
+- Never output CSS selectors, XPath, DOM paths, coordinates, JavaScript, browser code, or API calls.
+- Never handle password, PIN, OTP, CAPTCHA, token, secret, CVV/CVC, payment, delete, or destructive operations.
+- Never click final action buttons such as Simpan, Submit, Kirim, Bayar, Hapus, Delete, or Konfirmasi.
+- If the user mentions a final action, end with a pause before that action.
+- If a requested step is ambiguous, use pause with a concise review message instead of inventing behavior.
+- Use visible Indonesian UI labels exactly when the user provides them.
+- Keep descriptions short and operational.`;
+
 const createTable = `CREATE TABLE IF NOT EXISTS workflow_scenarios (
   id TEXT PRIMARY KEY NOT NULL, owner_id TEXT NOT NULL, name TEXT NOT NULL,
   description TEXT NOT NULL DEFAULT '', site_origin TEXT NOT NULL, prompt TEXT NOT NULL,
@@ -134,8 +162,8 @@ export async function compileWorkflow(prompt: string, siteOrigin: string): Promi
   try {
     const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({
       model, temperature: 0, max_tokens: 1200, stream: false, response_format: { type: "json_object" }, messages: [
-        { role: "system", content: `Create a deterministic browser workflow from the user's Indonesian instruction. Origin: ${siteOrigin}. Return JSON {name,description,steps}. Allowed steps only: find_row {sourceKey,buttonText,description}; click {text,description}; wait_for {text,description}; fill {fieldLabel,sourceKey,description}; pause {message,description}. Use visible labels/text, never CSS selectors. Never handle password, OTP, CAPTCHA, PIN, token, payment, delete, submit, save, or send. End with pause before any final action. Values use Excel sourceKey names and are never provided.` },
-        { role: "user", content: prompt },
+        { role: "system", content: `${WORKFLOW_SYSTEM_PROMPT}\n\nOrigin: ${siteOrigin}` },
+        { role: "user", content: `Compile this workflow instruction:\n${prompt}` },
       ],
     }) });
     if (!response.ok) throw new Error(`Model gagal (${response.status})`);

@@ -95,9 +95,12 @@ test("compiles one-time prompts into bounded reusable browser workflows", async 
     file("app/workflows/WorkflowManager.tsx"),
   ]);
   assert.match(workflows, /value\.length > 30/);
+  assert.match(workflows, /You are FormPilot Workflow Compiler/);
+  assert.match(workflows, /Return only valid JSON/);
+  assert.match(workflows, /Stay inside the user's requested workflow/);
   assert.match(workflows, /normalizeAction/);
   assert.match(workflows, /search_row/);
-  assert.match(workflows, /Never handle password, OTP, CAPTCHA/);
+  assert.match(workflows, /Never handle password, PIN, OTP, CAPTCHA/);
   assert.match(workflows, /Berhenti sebelum tombol final/);
   assert.match(authorization, /referencedKeys/);
   assert.match(bridge, /Origin tab tidak sama/);
