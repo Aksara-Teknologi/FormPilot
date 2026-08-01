@@ -18,7 +18,7 @@ test("renders the FormPilot operator and product credit", async () => {
   assert.match(page, /<FormPilot email=\{email\}/);
   assert.match(operator, /AI FORM OPERATOR/);
   assert.match(operator, /Knowledge/);
-  assert.match(operator, /Pasang extension/);
+  assert.match(operator, /Belum memasang extension/);
   assert.match(operator, /Aksara Bayu Teknologi/);
   assert.match(layout, /FormPilot/);
   assert.match(login, /Isi banyak form dari Excel/);

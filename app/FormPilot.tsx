@@ -383,7 +383,6 @@ export default function FormPilot({ email }: { email: string }) {
         <a className="brand" href="#top" aria-label="FormPilot beranda"><span className="brand-mark">F</span>FormPilot</a>
         <div className="top-actions">
           <nav className="operator-nav" aria-label="Navigasi utama">
-            <Link className="nav-link" href="/extension">Pasang extension</Link>
             <Link className="nav-link" href="/workflows">Langkah otomatis</Link>
             <Link className="nav-link" href="/knowledge">Knowledge</Link>
           </nav>
@@ -431,7 +430,7 @@ export default function FormPilot({ email }: { email: string }) {
               <label className="field-label" htmlFor="target-url">URL form target <span>WAJIB</span></label>
               <div className="url-input"><span>https://</span><input id="target-url" value={targetUrl.replace(/^https?:\/\//, "")} onChange={(event) => setTargetUrl(`https://${event.target.value.replace(/^https?:\/\//, "")}`)} placeholder="portal.perusahaan.com/form" /></div>
               <p className="field-help">Buka situs tujuan pada tab lain, login sendiri, lalu klik ikon FormPilot pada tab itu. Extension hanya mendapat akses sementara ke tab yang Anda pilih.</p>
-              <div className={`bridge-banner ${bridge.connected ? "connected" : ""}`}><span>{bridge.connected ? "✓" : "○"}</span><div><strong>{bridge.connected ? "Tab browser terhubung" : "Menunggu Browser Bridge"}</strong><small>{bridge.target?.title ?? "Install extension, lalu klik ikonnya pada tab form setelah login"}</small></div></div>
+              <div className={`bridge-banner ${bridge.connected ? "connected" : ""}`}><span>{bridge.connected ? "✓" : "○"}</span><div><strong>{bridge.connected ? "Tab browser terhubung" : "Menunggu Browser Bridge"}</strong><small>{bridge.target?.title ?? "Buka tab form, lalu klik ikon FormPilot setelah Anda login."}</small>{!bridge.connected && <Link className="bridge-help" href="/extension">Belum memasang extension? Lihat panduan singkat →</Link>}</div></div>
               <div className="scope-row"><span>AI akan membaca</span><b>Label</b><b>Tipe field</b><b>Opsi</b><b>Aturan wajib</b></div>
               <div className="browser-actions"><a className="secondary-button open-target" href={targetUrl} target="_blank" rel="noreferrer">1. Buka situs & login ↗</a><button className="main-button compact" onClick={inspect} disabled={busy}>{busy ? "Menghubungkan…" : "2. Hubungkan tab & pelajari"}<span>→</span></button></div>
             </>}
