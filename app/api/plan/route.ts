@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const fallbackMode = record.fallbackMode === "random_safe" || record.fallbackMode === "blank" ? record.fallbackMode : "ask";
     const user = await currentUser(request);
     const knowledgeRules = await resolveKnowledgeRules(user, record.targetUrl);
-    const plan = await buildPlan(record.targetUrl, record.fields, record.source as Record<string, unknown>, fallbackMode, knowledgeRules);
+    const plan = await buildPlan(user, record.targetUrl, record.fields, record.source as Record<string, unknown>, fallbackMode, knowledgeRules);
     return Response.json({ plan, approvalToken: await createApprovalToken(user, plan) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Pemetaan gagal";

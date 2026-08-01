@@ -6,6 +6,14 @@ export const userPreferences = sqliteTable("user_preferences", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const userModelSettings = sqliteTable("user_model_settings", {
+  userId: text("user_id").primaryKey(),
+  baseUrl: text("base_url").notNull(),
+  model: text("model").notNull(),
+  encryptedApiKey: text("encrypted_api_key").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const knowledgePacks = sqliteTable("knowledge_packs", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id").notNull(),

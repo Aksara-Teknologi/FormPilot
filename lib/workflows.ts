@@ -1,5 +1,5 @@
 import { getD1 } from "../db";
-import { readEnv } from "./runtime-env";
+import { resolveModelSettings } from "./model-settings";
 
 export type WorkflowStep =
   | { action: "find_row"; sourceKey: string; buttonText: string; description: string }
@@ -160,9 +160,9 @@ export async function deleteWorkflowScenario(ownerId: string, id: string): Promi
   await database.prepare("DELETE FROM workflow_scenarios WHERE id = ?1 AND owner_id = ?2").bind(id, ownerId).run();
 }
 
-export async function compileWorkflow(prompt: string, siteOrigin: string): Promise<{ name: string; description: string; steps: WorkflowStep[] }> {
-  const baseUrl = readEnv("OPENAI_BASE_URL")?.replace(/\/$/, "") ?? "https://api.openai.com/v1";
-  const apiKey = readEnv("OPENAI_API_KEY"); const model = readEnv("OPENAI_MODEL");
+export async function compileWorkflow(ownerId: string, prompt: string, siteOrigin: string): Promise<{ name: string; description: string; steps: WorkflowStep[] }> {
+  const settings = await resolveModelSettings(ownerId);
+  const baseUrl = settings.baseUrl; const apiKey = settings.apiKey; const model = settings.model;
   if (!apiKey || !model) throw new Error("Model API belum dikonfigurasi untuk membuat scenario");
   const endpoint = new URL(`${baseUrl}/chat/completions`);
   if (endpoint.protocol !== "https:" && endpoint.hostname !== "localhost") throw new Error("OPENAI_BASE_URL wajib HTTPS");

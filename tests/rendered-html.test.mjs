@@ -64,7 +64,7 @@ test("scopes Knowledge Packs to the authenticated user and applies them before A
   assert.doesNotMatch(route, /ownerId\s*=\s*input/);
   assert.match(storage, /WHERE p\.owner_id = \?1/);
   assert.match(storage, /p\.site_origin IS NULL OR p\.site_origin = \?2/);
-  assert.ok(planner.indexOf("applyKnowledge") < planner.indexOf("callModel(unresolved"));
+  assert.ok(planner.indexOf("const knowledge = applyKnowledge") < planner.lastIndexOf("callModel(ownerId"));
   assert.match(planner, /isSensitive\(field\)/);
   assert.match(migration, /CREATE TABLE `knowledge_packs`/);
   assert.match(migration, /ON DELETE cascade/);
@@ -110,5 +110,22 @@ test("compiles one-time prompts into bounded reusable browser workflows", async 
   assert.match(authorization, /referencedKeys/);
   assert.match(bridge, /Origin tab tidak sama/);
   assert.match(bridge, /Tombol final ditolak/);
-  assert.match(manager, /Buat scenario dengan AI/);
+  assert.match(manager, /Simpan langkah untuk form ini/);
+  assert.match(manager, /searchParams\.get\("origin"\)/);
+});
+
+test("keeps AI choices private to each user and encrypts personal API keys", async () => {
+  const [settings, modelRoute, operator] = await Promise.all([
+    file("lib/model-settings.ts"),
+    file("app/api/preferences/model/route.ts"),
+    file("app/FormPilot.tsx"),
+  ]);
+  assert.match(settings, /user_model_settings/);
+  assert.match(settings, /AES-GCM/);
+  assert.match(settings, /formpilot-personal-ai:\$\{userId\}/);
+  assert.match(modelRoute, /currentUser\(request\)/);
+  assert.match(operator, /Gunakan AI bawaan/);
+  assert.match(operator, /Gunakan AI pribadi saya/);
+  assert.doesNotMatch(operator, /Google SSO/);
+  assert.doesNotMatch(operator, /MCP server-side/);
 });

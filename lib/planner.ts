@@ -1,4 +1,4 @@
-import { readEnv } from "./runtime-env";
+import { resolveModelSettings } from "./model-settings";
 import type { KnowledgeRule } from "./knowledge";
 import type { FieldMapping, FormField, FormPlan } from "./types";
 
@@ -56,10 +56,11 @@ function parseAiMappings(value: unknown): AiMapping[] {
   });
 }
 
-async function callModel(fields: FormField[], sourceKeys: string[]): Promise<AiMapping[]> {
-  const baseUrl = readEnv("OPENAI_BASE_URL")?.replace(/\/$/, "") ?? "https://api.openai.com/v1";
-  const apiKey = readEnv("OPENAI_API_KEY");
-  const model = readEnv("OPENAI_MODEL");
+async function callModel(ownerId: string, fields: FormField[], sourceKeys: string[]): Promise<AiMapping[]> {
+  const settings = await resolveModelSettings(ownerId);
+  const baseUrl = settings.baseUrl;
+  const apiKey = settings.apiKey;
+  const model = settings.model;
   if (!apiKey || !model) return [];
   const endpoint = new URL(`${baseUrl}/chat/completions`);
   if (endpoint.protocol !== "https:" && endpoint.hostname !== "localhost") {
@@ -138,6 +139,7 @@ function applyKnowledge(fields: FormField[], rules: KnowledgeRule[]): { mappings
 }
 
 export async function buildPlan(
+  ownerId: string,
   targetUrl: string,
   fields: FormField[],
   source: Record<string, unknown>,
@@ -149,7 +151,7 @@ export async function buildPlan(
   const mappings = [...exact.mappings, ...knowledge.mappings];
   const unresolved = knowledge.unresolved;
   const sourceKeys = Object.keys(source);
-  const aiResults = unresolved.length ? await callModel(unresolved, sourceKeys) : [];
+  const aiResults = unresolved.length ? await callModel(ownerId, unresolved, sourceKeys) : [];
   const aiByField = new Map(aiResults.map((item) => [item.fieldId, item]));
 
   for (const field of unresolved) {

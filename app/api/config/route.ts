@@ -1,18 +1,11 @@
-import { hasEnv, readEnv } from "../../../lib/runtime-env";
+import { getSafeModelSettings } from "../../../lib/model-settings";
+import { hasEnv } from "../../../lib/runtime-env";
+import { currentUser } from "../../../lib/security";
 
-export async function GET() {
-  return Response.json({
-    model: {
-      ready: hasEnv("OPENAI_API_KEY") && hasEnv("OPENAI_MODEL"),
-      model: readEnv("OPENAI_MODEL") ?? null,
-      baseUrl: readEnv("OPENAI_BASE_URL") ?? "https://api.openai.com/v1",
-    },
-    mcp: {
-      ready: hasEnv("MCP_SERVER_URL") && hasEnv("MCP_AUTH_TOKEN"),
-      endpoint: readEnv("MCP_SERVER_URL") ? "Terkonfigurasi" : null,
-    },
-    approval: { ready: hasEnv("APP_SIGNING_SECRET") },
-    auth: { ready: hasEnv("GOOGLE_CLIENT_ID") && hasEnv("GOOGLE_CLIENT_SECRET") && hasEnv("APP_SIGNING_SECRET") },
-    allowedHosts: readEnv("ALLOWED_TARGET_HOSTS")?.split(",").filter(Boolean) ?? [],
-  }, { headers: { "Cache-Control": "no-store" } });
+export async function GET(request: Request) {
+  try {
+    return Response.json({ model: await getSafeModelSettings(await currentUser(request)), browserFallbackReady: hasEnv("MCP_SERVER_URL") && hasEnv("MCP_AUTH_TOKEN") }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Layanan belum siap" }, { status: 503 });
+  }
 }

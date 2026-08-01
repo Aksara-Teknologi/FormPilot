@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (input.action === "compile") {
       const prompt = text(input.prompt, "Prompt", 4_000); const rawUrl = new URL(text(input.siteOrigin, "Origin situs", 500));
       if (rawUrl.protocol !== "https:" && !(rawUrl.protocol === "http:" && ["localhost", "127.0.0.1"].includes(rawUrl.hostname))) throw new Error("Origin situs wajib HTTPS");
-      const compiled = await compileWorkflow(prompt, rawUrl.origin);
+      const compiled = await compileWorkflow(owner, prompt, rawUrl.origin);
       await saveWorkflowScenario(owner, { ...compiled, prompt, siteOrigin: rawUrl.origin });
     } else if (input.action === "delete") {
       await deleteWorkflowScenario(owner, text(input.id, "Scenario", 100));

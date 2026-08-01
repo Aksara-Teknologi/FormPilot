@@ -7,11 +7,8 @@ import type { FormField, FormPlan } from "../lib/types";
 import type { WorkflowScenario } from "../lib/workflows";
 
 type SafeConfig = {
-  model: { ready: boolean; model: string | null; baseUrl: string };
-  mcp: { ready: boolean; endpoint: string | null };
-  approval: { ready: boolean };
-  auth: { ready: boolean };
-  allowedHosts: string[];
+  model: { mode: "included" | "personal"; ready: boolean; model: string; baseUrl: string; hasPersonalKey: boolean };
+  browserFallbackReady: boolean;
 };
 
 type BridgeStatus = { connected: boolean; target?: { title: string; url: string; origin: string } };
@@ -39,39 +36,26 @@ function bridgeRequest<T>(type: "STATUS" | "INSPECT" | "FILL" | "WORKFLOW", payl
   });
 }
 
-const demoFields: FormField[] = [
-  { id: "full_name", name: "applicant_name", label: "Nama lengkap", type: "text", required: true },
-  { id: "work_email", name: "email", label: "Email kantor", type: "email", required: true },
-  { id: "company", name: "organization", label: "Nama perusahaan", type: "text", required: true },
-  { id: "role", name: "position", label: "Jabatan", type: "text", required: true },
-  { id: "phone", name: "mobile", label: "Nomor telepon", type: "tel", required: false },
-  { id: "otp", name: "verification_code", label: "Kode OTP", type: "password", required: true, sensitive: true },
-];
-
-const demoSource = {
-  full_name: "Rania Kusuma",
-  email: "rania@nusantara.id",
-  organization: "Nusantara Labs",
-  position: "Operations Lead",
-  mobile: "+62 812 5555 0188",
-};
-
 function Pill({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return <span className={`status-pill ${ok ? "ok" : "warn"}`}><span className="status-dot" />{children}</span>;
 }
 
 export default function FormPilot({ email }: { email: string }) {
   const [config, setConfig] = useState<SafeConfig | null>(null);
-  const [targetUrl, setTargetUrl] = useState("https://forms.example.com/registrasi-vendor");
-  const [sourceText, setSourceText] = useState(JSON.stringify(demoSource, null, 2));
-  const [fields, setFields] = useState<FormField[]>(demoFields);
+  const [targetUrl, setTargetUrl] = useState("");
+  const [sourceText, setSourceText] = useState("{}");
+  const [fields, setFields] = useState<FormField[]>([]);
   const [plan, setPlan] = useState<FormPlan | null>(null);
   const [approvalToken, setApprovalToken] = useState<string | null>(null);
   const [stage, setStage] = useState<1 | 2 | 3>(1);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState("Mode demo siap. Hubungkan MCP untuk membaca form nyata.");
+  const [notice, setNotice] = useState("Mulai dengan memasukkan alamat form yang ingin Anda isi.");
   const [error, setError] = useState<string | null>(null);
-  const [showSetup, setShowSetup] = useState(false);
+  const [showAiSettings, setShowAiSettings] = useState(false);
+  const [aiMode, setAiMode] = useState<"included" | "personal">("included");
+  const [aiBaseUrl, setAiBaseUrl] = useState("");
+  const [aiModel, setAiModel] = useState("");
+  const [aiKey, setAiKey] = useState("");
   const [excelName, setExcelName] = useState<string | null>(null);
   const [excelSheets, setExcelSheets] = useState<ExcelSheet[]>([]);
   const [selectedSheet, setSelectedSheet] = useState("");
@@ -91,7 +75,7 @@ export default function FormPilot({ email }: { email: string }) {
   useEffect(() => {
     fetch("/api/config", { cache: "no-store" })
       .then((response) => response.json() as Promise<SafeConfig>)
-      .then(setConfig)
+      .then((next) => { setConfig(next); setAiMode(next.model.mode); setAiBaseUrl(next.model.baseUrl); setAiModel(next.model.model); })
       .catch(() => setNotice("Konfigurasi server belum dapat dibaca."));
     fetch("/api/preferences/submit-policy", { cache: "no-store" })
       .then(async (response) => response.ok ? response.json() as Promise<{ policy: SubmitPolicy }> : null)
@@ -115,14 +99,17 @@ export default function FormPilot({ email }: { email: string }) {
     return () => { window.clearTimeout(timer); window.removeEventListener("focus", refreshBridge); };
   }, []);
 
-  const browserReady = bridge.connected || Boolean(config?.mcp.ready);
-  const allReady = Boolean(config?.model.ready && browserReady && config?.approval.ready && config?.auth.ready);
+  const browserReady = bridge.connected || Boolean(config?.browserFallbackReady);
   const progress = useMemo(() => stage === 1 ? "33%" : stage === 2 ? "66%" : "100%", [stage]);
   const unanswered = plan?.mappings.filter((mapping) => mapping.method === "manual" && !mapping.sensitive && mapping.value === null).length ?? 0;
   const matchingScenarios = useMemo(() => {
     try { const origin = new URL(targetUrl).origin; return workflowScenarios.filter((scenario) => scenario.isActive && scenario.siteOrigin === origin); }
     catch { return []; }
   }, [targetUrl, workflowScenarios]);
+  const workflowCreateHref = useMemo(() => {
+    try { return `/workflows?origin=${encodeURIComponent(new URL(targetUrl).origin)}`; }
+    catch { return "/workflows"; }
+  }, [targetUrl]);
 
   function rowWasSuccessful(history: InputHistoryItem[], fileName: string, rowNumber: number, sheetName = selectedSheet): boolean {
     let origin: string;
@@ -245,10 +232,7 @@ export default function FormPilot({ email }: { email: string }) {
         setFields(data.fields); setStage(2); setNotice(`${data.fields.length} field dibaca dari tab “${data.target.title}”. Cookie dan password tetap di tab tersebut.`);
         return;
       }
-      if (!config?.mcp.ready) {
-        setFields(demoFields); setStage(2); setNotice("Struktur demo dipakai. Setelah MCP aktif, tombol ini akan mempelajari form target secara langsung.");
-        return;
-      }
+      if (!config?.browserFallbackReady) throw new Error("Hubungkan tab form melalui extension FormPilot terlebih dahulu.");
       const response = await fetch("/api/inspect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ targetUrl }) });
       const data = await response.json() as { fields?: FormField[]; error?: string };
       if (!response.ok || !data.fields) throw new Error(data.error ?? "Inspeksi gagal");
@@ -306,6 +290,20 @@ export default function FormPilot({ email }: { email: string }) {
       setError(cause instanceof Error ? cause.message : "Preferensi gagal disimpan");
       return false;
     } finally { setBusy(false); }
+  }
+
+  async function saveAiSettings() {
+    setBusy(true); setError(null);
+    try {
+      const payload = aiMode === "included" ? { mode: "included" } : { mode: "personal", baseUrl: aiBaseUrl, model: aiModel, apiKey: aiKey };
+      const response = await fetch("/api/preferences/model", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await response.json() as { model?: SafeConfig["model"]; error?: string };
+      if (!response.ok || !data.model) throw new Error(data.error ?? "Pilihan AI belum tersimpan");
+      const nextModel = data.model;
+      setConfig((current) => current ? { ...current, model: nextModel } : current); setAiKey("");
+      setNotice(nextModel.mode === "personal" ? "AI pribadi Anda siap digunakan untuk akun ini." : "Anda menggunakan AI bawaan FormPilot.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Pilihan AI belum tersimpan"); }
+    finally { setBusy(false); }
   }
 
   async function rowHash(row: Record<string, string | number | boolean | null>): Promise<string> {
@@ -384,9 +382,8 @@ export default function FormPilot({ email }: { email: string }) {
       <header className="topbar">
         <a className="brand" href="#top" aria-label="FormPilot beranda"><span className="brand-mark">F</span>FormPilot</a>
         <div className="top-actions">
-          <Link className="nav-link" href="/workflows">Flows</Link>
+          <Link className="nav-link" href="/workflows">Langkah otomatis</Link>
           <Link className="nav-link" href="/knowledge">Knowledge</Link>
-          <Pill ok={allReady}>{allReady ? "Semua sistem siap" : "Perlu konfigurasi"}</Pill>
           {email === "Mode lokal" ? (
             <span className="avatar" title={email}>L</span>
           ) : (
@@ -449,7 +446,7 @@ export default function FormPilot({ email }: { email: string }) {
                 <div className="header-editor"><div><strong>Sesuaikan nama header</strong><span>Nama ini dipakai untuk mencocokkan field form</span></div><div>{excelHeaders.map((header, index) => <label key={index}><span>Kolom {index + 1}</span><input value={header} onChange={(event) => renameHeader(index, event.target.value)} aria-label={`Nama header kolom ${index + 1}`} /></label>)}</div></div>
               </>}
               {excelRows.length > 0 && <label className="row-picker">Baris yang akan diproses<select value={selectedRow} onChange={(event) => chooseRow(Number(event.target.value))}>{excelRows.map((row, index) => { const rowNumber = excelRowNumbers[index] ?? index + 2; return <option value={index} key={rowNumber}>{excelName && rowWasSuccessful(inputHistory, excelName, rowNumber) ? "✓ " : ""}Baris {rowNumber} · {String(Object.values(row)[0] ?? "tanpa nama")}</option>; })}</select></label>}
-              <div className="workflow-runner"><div><strong>Flow sebelum pemetaan</strong><span>Untuk membuka Edit/Lengkapi, modal, atau wizard terlebih dahulu.</span></div>{matchingScenarios.length ? <><select value={matchingScenarios.some((scenario) => scenario.id === selectedScenarioId) ? selectedScenarioId : matchingScenarios[0].id} onChange={(event) => setSelectedScenarioId(event.target.value)}>{matchingScenarios.map((scenario) => <option value={scenario.id} key={scenario.id}>{scenario.name}</option>)}</select><button onClick={runWorkflow} disabled={busy || !bridge.connected || !excelRows.length}>Jalankan flow</button></> : <Link href="/workflows">Buat scenario untuk situs ini →</Link>}</div>
+              <div className="workflow-runner"><div><strong>Langkah tambahan untuk form ini</strong><span>Gunakan bila perlu membuka Edit, modal, atau wizard terlebih dahulu.</span></div>{matchingScenarios.length ? <><select value={matchingScenarios.some((scenario) => scenario.id === selectedScenarioId) ? selectedScenarioId : matchingScenarios[0].id} onChange={(event) => setSelectedScenarioId(event.target.value)}>{matchingScenarios.map((scenario) => <option value={scenario.id} key={scenario.id}>{scenario.name}</option>)}</select><button onClick={runWorkflow} disabled={busy || !bridge.connected || !excelRows.length}>Jalankan langkah</button></> : <Link href={workflowCreateHref}>Simpan langkah untuk form ini →</Link>}</div>
               <label className="field-label source-label" htmlFor="source-data">Pratinjau data terpilih <span>BISA DIEDIT</span></label>
               <textarea id="source-data" className="source-editor" value={sourceText} onChange={(event) => setSourceText(event.target.value)} spellCheck={false} />
               <label className="fallback-policy">Jika jawaban tidak ditemukan di Excel<select value={fallbackMode} onChange={(event) => setFallbackMode(event.target.value as "ask" | "blank" | "random_safe")}><option value="ask">Tanyakan kepada pengguna</option><option value="blank">Biarkan kosong</option><option value="random_safe">Pilih acak dari opsi yang aman</option></select></label>
@@ -478,16 +475,21 @@ export default function FormPilot({ email }: { email: string }) {
 
           <aside className="side-column">
             <section className="side-card">
-              <div className="side-title"><div><p>STATUS KONEKSI</p><h3>Fondasi aman</h3></div><button onClick={() => setShowSetup(!showSetup)}>{showSetup ? "Tutup" : "Atur"}</button></div>
-              <div className="connection"><span className="connection-icon">G</span><div><strong>Google SSO</strong><small>OAuth langsung</small></div><Pill ok={Boolean(config?.auth.ready)}>{config?.auth.ready ? "Aktif" : "Setup"}</Pill></div>
-              <div className="connection"><span className="connection-icon coral">AI</span><div><strong>Model API</strong><small>{config?.model.model ?? "OpenAI-compatible"}</small></div><Pill ok={Boolean(config?.model.ready)}>{config?.model.ready ? "Aktif" : "Setup"}</Pill></div>
-              <div className="connection"><span className="connection-icon mint">B</span><div><strong>Browser Bridge</strong><small>{bridge.target?.title ?? (config?.mcp.ready ? "MCP server-side" : "Extension lokal")}</small></div><Pill ok={browserReady}>{browserReady ? "Aktif" : "Setup"}</Pill></div>
+              <div className="side-title"><div><p>SIAP DIGUNAKAN</p><h3>Ruang kerja Anda</h3></div><button onClick={() => setShowAiSettings(!showAiSettings)}>{showAiSettings ? "Selesai" : "Pilihan AI"}</button></div>
+              <div className="connection"><span className="connection-icon coral">AI</span><div><strong>Asisten pengisian</strong><small>{config?.model.mode === "personal" ? "Menggunakan AI pribadi Anda" : "AI bawaan FormPilot"}</small></div><Pill ok={Boolean(config?.model.ready)}>{config?.model.ready ? "Siap" : "Belum siap"}</Pill></div>
+              <div className="connection"><span className="connection-icon mint">B</span><div><strong>Tab form</strong><small>{bridge.target?.title ?? "Hubungkan setelah login ke situs tujuan"}</small></div><Pill ok={bridge.connected}>{bridge.connected ? "Terhubung" : "Belum terhubung"}</Pill></div>
               <label className="submit-setting">Konfirmasi submit<select value={submitPolicy} onChange={(event) => saveSubmitPolicy(event.target.value as SubmitPolicy)} disabled={busy}><option value="always_ask">Tanyakan dulu</option><option value="auto_submit">Tidak perlu konfirmasi</option></select></label>
-              {showSetup && <div className="setup-panel">
-                <p><b>1.</b> Buat OAuth Client tipe Web di Google Cloud.</p>
-                <p><b>2.</b> Isi <code>OPENAI_BASE_URL</code>, <code>OPENAI_MODEL</code>, dan secret <code>OPENAI_API_KEY</code>.</p>
-                <p><b>3.</b> Isi endpoint MCP, token, signing secret, dan allowlist domain.</p>
-                <span>Nilai secret tidak pernah ditampilkan kembali.</span>
+              {showAiSettings && <div className="setup-panel">
+                <p><strong>Pilih cara menggunakan AI</strong></p>
+                <label><input type="radio" checked={aiMode === "included"} onChange={() => setAiMode("included")} /> Gunakan AI bawaan <small>Gratis untuk kebutuhan sederhana.</small></label>
+                <label><input type="radio" checked={aiMode === "personal"} onChange={() => setAiMode("personal")} /> Gunakan AI pribadi saya <small>Pakai akun AI Anda sendiri untuk pilihan model dan kapasitas yang lebih sesuai.</small></label>
+                {aiMode === "personal" && <>
+                  <label>Alamat layanan AI<input value={aiBaseUrl} onChange={(event) => setAiBaseUrl(event.target.value)} placeholder="https://api.openai.com/v1" /></label>
+                  <label>Nama model<input value={aiModel} onChange={(event) => setAiModel(event.target.value)} placeholder="Contoh: gpt-4.1-mini" /></label>
+                  <label>API key {config?.model.hasPersonalKey && <span>OPSIONAL JIKA TIDAK DIUBAH</span>}<input value={aiKey} onChange={(event) => setAiKey(event.target.value)} type="password" autoComplete="new-password" placeholder={config?.model.hasPersonalKey ? "Tersimpan aman — isi hanya untuk mengganti" : "Masukkan API key Anda"} /></label>
+                </>}
+                <button className="secondary-button" onClick={saveAiSettings} disabled={busy}>Simpan pilihan AI</button>
+                <span>API key pribadi dienkripsi dan tidak pernah ditampilkan kembali.</span>
               </div>}
             </section>
 
@@ -515,7 +517,7 @@ export default function FormPilot({ email }: { email: string }) {
       </div>}
 
       <footer>
-        <span>FormPilot / Cloudflare Workers</span>
+        <span>FormPilot</span>
         <span>Produk oleh <a href="https://aksarateknologi.com" target="_blank" rel="noreferrer">Aksara Bayu Teknologi ↗</a></span>
         <span>AI menyarankan. Anda memutuskan.</span>
       </footer>
