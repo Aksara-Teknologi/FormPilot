@@ -105,6 +105,8 @@ test("compiles one-time prompts into bounded reusable browser workflows", async 
   assert.match(workflows, /aksi tidak dikenal \(\$\{rawAction/);
   assert.match(workflows, /Never handle password, PIN, OTP, CAPTCHA/);
   assert.match(workflows, /Berhenti sebelum tombol final/);
+  assert.match(workflows, /75_000/);
+  assert.match(workflows, /Model belum merespons dalam 75 detik/);
   assert.match(authorization, /referencedKeys/);
   assert.match(bridge, /Origin tab tidak sama/);
   assert.match(bridge, /Tombol final ditolak/);

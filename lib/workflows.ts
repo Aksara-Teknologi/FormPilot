@@ -166,10 +166,13 @@ export async function compileWorkflow(prompt: string, siteOrigin: string): Promi
   if (!apiKey || !model) throw new Error("Model API belum dikonfigurasi untuk membuat scenario");
   const endpoint = new URL(`${baseUrl}/chat/completions`);
   if (endpoint.protocol !== "https:" && endpoint.hostname !== "localhost") throw new Error("OPENAI_BASE_URL wajib HTTPS");
-  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 30_000);
+  // Compatible gateways can take longer than OpenAI for the first response. A
+  // bounded timeout protects the Worker while leaving enough time for a short
+  // structured scenario to be generated.
+  const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 75_000);
   try {
     const response = await fetch(endpoint, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify({
-      model, temperature: 0, max_tokens: 1200, stream: false, response_format: { type: "json_object" }, messages: [
+      model, temperature: 0, max_tokens: 600, stream: false, response_format: { type: "json_object" }, messages: [
         { role: "system", content: `${WORKFLOW_SYSTEM_PROMPT}\n\nOrigin: ${siteOrigin}` },
         { role: "user", content: `Compile this workflow instruction:\n${prompt}\n\nReturn the JSON object now. Every steps[].action must be exactly one of: find_row, click, wait_for, fill, pause.` },
       ],
@@ -184,5 +187,10 @@ export async function compileWorkflow(prompt: string, siteOrigin: string): Promi
     const name = typeof result.name === "string" ? result.name.trim().slice(0, 80) : "Scenario baru";
     const description = typeof result.description === "string" ? result.description.trim().slice(0, 400) : "";
     return { name, description, steps: validateWorkflowSteps(result.steps) };
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("Model belum merespons dalam 75 detik. Coba lagi atau periksa OPENAI_BASE_URL dan model yang dipilih.");
+    }
+    throw error;
   } finally { clearTimeout(timeout); }
 }
