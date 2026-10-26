@@ -94,7 +94,7 @@ jobs:
         run: npm run release:package
 
       - name: Upload workflow artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: formpilot-${{ github.ref_name }}
           path: artifacts/*
